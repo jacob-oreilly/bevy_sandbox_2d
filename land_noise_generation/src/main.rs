@@ -21,7 +21,7 @@ fn setup(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>
 ) {
-    let rez: i64 = 10;
+    let rez: i64 = 5;
     let cols: i64 = (1400 / rez) + 1;
     let rows = (800 / rez) + 1;
     let total_col_row = cols * rows;
@@ -41,7 +41,6 @@ fn setup(
             let x_coord = (x * rez) as f32;
             let current_index: usize = (y * (x - 1)).try_into().unwrap();
             let color_value = column_major[current_index] as f32;
-            println!("{:?}", color_value);
             // Circle
             commands.spawn(MaterialMesh2dBundle {
                 mesh: meshes.add(shape::Circle::new(2.0).into()).into(),
@@ -74,12 +73,30 @@ fn setup(
             };
             let length_a_b = ((point_a.x_coord - point_b.x_coord).powi(2) + (point_a.y_coord - point_b.y_coord).powi(2)).sqrt().sqrt();
             let length_c_d = ((point_a.x_coord - point_b.y_coord).powi(2) + (point_b.x_coord - point_b.y_coord).powi(2)).sqrt().sqrt();
+
+            let abs_difference_1 = (point_a.y_coord.atan2(point_a.x_coord) - (-std::f32::consts::FRAC_PI_4)).abs();
             // commands.spawn(MaterialMesh2dBundle {
             //     mesh: meshes.add(   Mesh::from(shape::Quad { size: Vec2::new(length_a_b, 1.0), flip: false})).into(),
             //     material: materials.add(Color::rgb(255.0, 255.0, 255.0).into()),
-            //     transform: Transform::from_xyz(),
+            //     transform: Transform::from_rotation(Quat::from_rotation),
             //     ..default()
             // });
+
+            // commands.spawn(MaterialMesh2dBundle {
+            //     mesh: meshes.add(   Mesh::from(shape::Quad { size: Vec2::new(length_a_b, 2.0), flip: false})).into(),
+            //     material: materials.add(ColorMaterial::from(Color::BLUE)),
+            //     transform: Transform::from_translation(Vec3::new(cols as f32 - point_a.x_coord, rows as f32 - point_a.y_coord, 0.)).with_rotation(Quat::from_rotation_arc_2d(Vec2::new(point_a.x_coord, point_a.y_coord), Vec2::new(point_b.x_coord, point_b.y_coord))),
+            //     ..default()
+            // });
+            // println!("{:?} {:?}", point_a, point_b );
+
+            commands.spawn(MaterialMesh2dBundle {
+                mesh: meshes.add(   Mesh::from(shape::Quad { size: Vec2::new(length_a_b, 1.0), flip: false})).into(),
+                material: materials.add(ColorMaterial::from(Color::BLUE)),
+                transform: Transform::from_translation(Vec3::new(cols as f32 - point_a.x_coord, rows as f32 - point_a.y_coord, 0.)).with_rotation(Quat::from_rotation_z(abs_difference_1)),
+                ..default()
+            });
+            println!("{:?} {:?}", point_a, point_b );
         }
     }
        
@@ -89,7 +106,7 @@ fn setup(
     
 }
 
-
+#[derive(Debug)]
 struct pointVector {
     x_coord: f32,
     y_coord: f32 
