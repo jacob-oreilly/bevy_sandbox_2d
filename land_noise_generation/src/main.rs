@@ -23,12 +23,10 @@ fn setup(
     window_query: Query<&Window, With<PrimaryWindow>>
 ) {
     let window = window_query.get_single().unwrap();
-    let rez: i64 = 10;
-    let cols: i64 = (600 / rez) + 1;
-    let rows = (400 / rez) + 1;
+    let rez: i64 = 20;
+    let cols: i64 = (600 / rez);
+    let rows = (400 / rez);
     let total_col_row = cols * rows;
-    let center_x: f32 = cols as f32 / 4.0;
-    let center_y: f32 = cols as f32 / 4.0;
     let mut column_major = Vec::new();
 
     for _n in 1..total_col_row {
@@ -64,12 +62,12 @@ fn setup(
             let y = i * rez;
             let x = j * rez;
             let point_a = pointVector {
-                x_coord: (x + rez) as f32 * 0.5,
+                x_coord: x as f32 + (rez as f32 * 0.5),
                 y_coord: y as f32
             };
             let point_b = pointVector {
                 x_coord: (x + rez) as f32,
-                y_coord: (y + rez) as f32 * 0.5
+                y_coord: y as f32 + (rez as f32  * 0.5)
             };
             let point_c = pointVector {
                 x_coord: (x + rez) as f32 * 0.5,
@@ -79,31 +77,12 @@ fn setup(
                 x_coord: x as f32,
                 y_coord: (y + rez) as f32 * 0.5
             };
-            let length_a_b = ((point_a.x_coord - point_b.x_coord).powi(2) + (point_a.y_coord - point_b.y_coord).powi(2)).sqrt().sqrt();
-            let length_c_d = ((point_a.x_coord - point_b.y_coord).powi(2) + (point_b.x_coord - point_b.y_coord).powi(2)).sqrt().sqrt();
-
-            let abs_difference_1 = (point_a.y_coord.atan2(point_a.x_coord) - (-std::f32::consts::FRAC_PI_3)).abs();
-            // commands.spawn(MaterialMesh2dBundle {
-            //     mesh: meshes.add(   Mesh::from(shape::Quad { size: Vec2::new(length_a_b, 1.0), flip: false})).into(),
-            //     material: materials.add(Color::rgb(255.0, 255.0, 255.0).into()),
-            //     transform: Transform::from_rotation(Quat::from_rotation),
-            //     ..default()
-            // });
-
-            // commands.spawn(MaterialMesh2dBundle {
-            //     mesh: meshes.add(   Mesh::from(shape::Quad { size: Vec2::new(length_a_b, 2.0), flip: false})).into(),
-            //     material: materials.add(ColorMaterial::from(Color::BLUE)),
-            //     transform: Transform::from_translation(Vec3::new(cols as f32 - point_a.x_coord, rows as f32 - point_a.y_coord, 0.)).with_rotation(Quat::from_rotation_arc_2d(Vec2::new(point_a.x_coord, point_a.y_coord), Vec2::new(point_b.x_coord, point_b.y_coord))),
-            //     ..default()
-            // });
-            // println!("{:?} {:?}", point_a, point_b );
-
-            // commands.spawn(MaterialMesh2dBundle {
-            //     mesh: meshes.add(   Mesh::from(shape::Quad { size: Vec2::new(length_a_b, 1.0), flip: false})).into(),
-            //     material: materials.add(ColorMaterial::from(Color::BLUE)),
-            //     transform: Transform::from_translation(Vec3::new(cols as f32 - point_a.x_coord, rows as f32 - point_a.y_coord, 0.)).with_rotation(Quat::from_rotation_z(abs_difference_1)),
-            //     ..default()
-            // });
+            let diff_vector = Vec2::new(point_b.x_coord, point_b.y_coord) - Vec2::new(point_a.x_coord, point_a.y_coord);
+            let angle = diff_vector.y.atan2(diff_vector.x);
+            let abs_difference_1 = (diff_vector.y.atan2(diff_vector.x) - (-std::f32::consts::FRAC_PI_4)).abs().to_degrees();
+            // let angle = diff_vector.angle_between(Vec2::new(point_a.x_coord, point_a.y_coord));
+            let length_a_b = (Vec2::new(point_b.x_coord, point_b.y_coord) ).distance(Vec2::new(point_a.x_coord, point_a.y_coord));
+            // let point_ab_angle = (Vec2::new(point_b.x_coord, point_b.y_coord) - Vec2::new(point_a.x_coord, point_a.y_coord)).angle_between(Vec2::new(point_a.x_coord, point_a.y_coord));
 
             commands.spawn(SpriteBundle {
                 sprite: Sprite {
@@ -111,10 +90,11 @@ fn setup(
                     custom_size: Some(Vec2::new(length_a_b, 1.0)),
                     ..default()
                 },
-                transform: Transform::from_translation(Vec3::new(point_a.x_coord as f32,point_a.y_coord as f32, 1.0)).with_rotation(Quat::from_rotation_z(abs_difference_1)),
+                // transform: Transform::from_translation(Vec3::new(x as f32,y as f32, 1.0)).with_rotation(Quat::from_rotation_z(point_ab_angle)),
+                transform: Transform::from_translation(Vec3::new(point_a.x_coord, point_a.y_coord, 1.0)).with_rotation(Quat::from_rotation_z(abs_difference_1)),
                 ..default()
             });
-            
+            println!("length {:?}", length_a_b);
             // println!("{:?} {:?}", point_a, point_b );
             
         }
