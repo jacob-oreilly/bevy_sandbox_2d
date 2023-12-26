@@ -84,12 +84,12 @@ fn setup(
                 y_coord: y as f32 + (rez as f32 * 0.5),
             };
             let point_c = pointVector {
-                x_coord: (x + rez) as f32 * 0.5,
+                x_coord: x as f32 + (rez as f32 * 0.5),
                 y_coord: (y + rez) as f32,
             };
             let point_d = pointVector {
                 x_coord: x as f32,
-                y_coord: (y + rez) as f32 * 0.5,
+                y_coord: y as f32 + (rez as f32 * 0.5),
             };
 
             let line_state = get_line_state(
@@ -136,11 +136,6 @@ fn setup(
                 },
                 _ => (),
             }
-
-            // spawn_line(point_a, point_b, &mut commands);
-
-            // println!("a: {:?} b: {:?} c: {:?} d: {:?}", corner_a, corner_b, corner_c, corner_d);
-            println!("Line State: {:?}", line_state);
         }
     }
 }
@@ -161,7 +156,7 @@ pub fn spawn_camera(mut commands: Commands, window_query: Query<&Window, With<Pr
 }
 
 fn spawn_line(point_start: pointVector, point_end: pointVector, commands: &mut Commands, line_state: i64) {
-    let mut abs_difference = 0.0;
+    let mut abs_difference;
     let length;
 
 
@@ -171,34 +166,30 @@ fn spawn_line(point_start: pointVector, point_end: pointVector, commands: &mut C
     let abs_diff_str_1 = "1, 4, 10, 11, 14";
     let abs_diff_str_2 = "2, 5, 7, 8, 13, 15";
     if abs_diff_str_1.contains(&line_state.to_string()) {
-        abs_difference = diff_vector.y.atan2(diff_vector.x) - (-std::f32::consts::FRAC_PI_4).abs()
-        .to_degrees();
-    }
-    else if abs_diff_str_2.contains(&line_state.to_string()) {
         abs_difference = (diff_vector.y.atan2(diff_vector.x) - (3.0 * std::f32::consts::FRAC_PI_4)).abs()
         .to_degrees();
+        
+    }
+    else if abs_diff_str_2.contains(&line_state.to_string()) {
+        abs_difference = diff_vector.y.atan2(diff_vector.x) - (-std::f32::consts::FRAC_PI_4).abs().to_degrees();
     }
     else {
-        abs_difference = diff_vector.y.atan2(diff_vector.x) - (-std::f32::consts::FRAC_PI_4).abs()
-        .to_degrees();
+        abs_difference = 0.0;
     }
-        
-
-    length = point_end_vector.distance(point_start_vector).abs();
-
+    length = point_end_vector.distance(point_start_vector);
+    println!("line_state: {:?} point_start: {:?} point_end: {:?} length: {:?}", line_state, point_start, point_end, length);
+    
     commands.spawn(SpriteBundle {
         sprite: Sprite {
             color: Color::BLUE,
             custom_size: Some(Vec2::new(length, 1.0)),
             ..default()
         },
-        // transform: Transform::from_translation(Vec3::new(point_start.x_coord, point_start.y_coord, 1.0)).with_rotation(Quat::from_rotation_z(abs_difference)),
-            transform: Transform::from_translation(Vec3::new(point_start.x_coord, point_start.y_coord, 1.0)),
+        transform: Transform::from_translation(Vec3::new(point_start.x_coord, point_start.y_coord, 1.0)).with_rotation(Quat::from_rotation_z(abs_difference)),
         ..default()
     });
 }
 
 fn get_line_state(a: i64, b: i64, c: i64, d: i64) -> i64 {
-    // println!("a: {:?} b: {:?} c: {:?} d: {:?}", a as f32, b as f32, c as f32, d as f32);
     a * 8 + b * 4 + c * 2 + d * 1
 }
