@@ -31,7 +31,7 @@ fn setup(
 
     for _n in 1..total_col_row {
         let mut rng = rand::thread_rng();
-        let rand_point: i64 = rng.gen();
+        let rand_point: i64 = rng.gen_range(0..=1);
         column_major.push(rand_point);
     }
     println!("{:?}", column_major); 
@@ -44,15 +44,14 @@ fn setup(
             // Circle
             commands.spawn(MaterialMesh2dBundle {
                 mesh: meshes.add(shape::Circle::new(2.0).into()).into(),
-                material: materials.add(Color::rgba_linear(color_value * 255.0, color_value * 255.0, color_value * 255.0, color_value).into()),
+                material: materials.add(Color::rgba_linear(color_value * 255.0, color_value * 255.0, color_value * 255.0, color_value + 1.0).into()),
                 transform: Transform::from_xyz(x_coord, y_coord, 0.0),
-                // transform: Transform::from_translation(Vec3::new(x_coord,  y_coord, 0.)),
                 ..default()
             });
 
-            println!("cols {:?} rows {:?}", cols, rows );
-            println!("point x {:?} point y {:?}", x_coord, y_coord );
-            println!("computed x {:?} coomputed y {:?}", x_coord - cols as f32, y_coord - rows as f32 );
+            // println!("cols {:?} rows {:?}", cols, rows );
+            // println!("point x {:?} point y {:?}", x_coord, y_coord );
+            // println!("computed x {:?} coomputed y {:?}", x_coord - cols as f32, y_coord - rows as f32 );
         }
         println!()
     }
@@ -61,6 +60,10 @@ fn setup(
         for j in 1..cols {
             let y = i * rez;
             let x = j * rez;
+            let corner_a: usize = (i * (j - 1)).try_into().unwrap();
+            let corner_b: usize = (i * j).try_into().unwrap();
+            let corner_c: usize = ((i + 1) * j).try_into().unwrap();
+            let corner_d: usize = ((i + 1) * (j - 1)).try_into().unwrap();
             let point_a = pointVector {
                 x_coord: x as f32 + (rez as f32 * 0.5),
                 y_coord: y as f32
@@ -80,9 +83,28 @@ fn setup(
             let diff_vector = Vec2::new(point_b.x_coord, point_b.y_coord) - Vec2::new(point_a.x_coord, point_a.y_coord);
             let angle = diff_vector.y.atan2(diff_vector.x);
             let abs_difference_1 = (diff_vector.y.atan2(diff_vector.x) - (-std::f32::consts::FRAC_PI_4)).abs().to_degrees();
-            // let angle = diff_vector.angle_between(Vec2::new(point_a.x_coord, point_a.y_coord));
             let length_a_b = (Vec2::new(point_b.x_coord, point_b.y_coord) ).distance(Vec2::new(point_a.x_coord, point_a.y_coord));
-            // let point_ab_angle = (Vec2::new(point_b.x_coord, point_b.y_coord) - Vec2::new(point_a.x_coord, point_a.y_coord)).angle_between(Vec2::new(point_a.x_coord, point_a.y_coord));
+            let line_state = get_line_state(column_major[corner_a], column_major[corner_b], column_major[corner_c], column_major[corner_d]);
+
+            match line_state {
+                1 => (),
+                2 => (),
+                3 => (),
+                4 => (),
+                5 => (),
+                6 => (),
+                7 => (),
+                8 => (),
+                9 => (),
+                10 => (),
+                11 => (),
+                12 => (),
+                13 => (),
+                14 => (),
+                15 => (),
+                16 => (),
+                _ => (),
+            }
 
             commands.spawn(SpriteBundle {
                 sprite: Sprite {
@@ -90,19 +112,15 @@ fn setup(
                     custom_size: Some(Vec2::new(length_a_b, 1.0)),
                     ..default()
                 },
-                // transform: Transform::from_translation(Vec3::new(x as f32,y as f32, 1.0)).with_rotation(Quat::from_rotation_z(point_ab_angle)),
                 transform: Transform::from_translation(Vec3::new(point_a.x_coord, point_a.y_coord, 1.0)).with_rotation(Quat::from_rotation_z(abs_difference_1)),
                 ..default()
             });
-            println!("length {:?}", length_a_b);
-            // println!("{:?} {:?}", point_a, point_b );
+
+            // println!("a: {:?} b: {:?} c: {:?} d: {:?}", corner_a, corner_b, corner_c, corner_d);
+            println!("Line State: {:?}", line_state);
             
         }
     }
-       
-    // for _ in 0..vec.capacity() {
-    //     vec.push(rand::random());
-    // };  
     
 }
 
@@ -124,4 +142,10 @@ pub fn spawn_camera(
             ..default()
         }
     );
+}
+
+
+fn get_line_state(a: i64, b: i64, c: i64, d: i64) -> i64 {
+    // println!("a: {:?} b: {:?} c: {:?} d: {:?}", a as f32, b as f32, c as f32, d as f32);
+    a * 8 + b * 4 + c * 2 + d * 1
 }
