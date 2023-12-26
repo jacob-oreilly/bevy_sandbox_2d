@@ -100,18 +100,44 @@ fn setup(
             );
 
             match line_state {
-                1 | 14 => println!("d-c"),
-                2 | 13 => println!("c-b"),
-                3 | 12 => println!("d-b"),
-                4 | 11 => println!("a-b"),
-                5 => println!("d-a & c-b"),
-                6 | 9 => println!("a-c"),
-                7 | 8 => println!("d-a"),
-                10 => println!("a-b & d-c"),
+                1 | 14 => {
+                    println!("d-c");
+                    spawn_line(point_d, point_c, &mut commands, line_state);
+                },
+                2 | 13 => {
+                    println!("c-b");
+                    spawn_line(point_c, point_b, &mut commands, line_state);
+                },
+                3 | 12 => {
+                    println!("d-b");
+                    spawn_line(point_d, point_b, &mut commands, line_state);
+                },
+                4 | 11 => {
+                    println!("a-b");
+                    spawn_line(point_a, point_b, &mut commands, line_state);
+                },
+                5 => {
+                    println!("d-a & c-b");
+                    spawn_line(point_d, point_a, &mut commands, line_state);
+                    spawn_line(point_c, point_b, &mut commands, line_state);
+                },
+                6 | 9 => {
+                    println!("a-c");
+                    spawn_line(point_a, point_c, &mut commands, line_state);
+                },
+                7 | 8 => {
+                    println!("d-a");
+                    spawn_line(point_d, point_a, &mut commands, line_state);
+                },
+                10 => {
+                    println!("a-b & d-c");
+                    spawn_line(point_a, point_b, &mut commands, line_state);
+                    spawn_line(point_d, point_c, &mut commands, line_state);
+                },
                 _ => (),
             }
 
-            spawn_line(point_a, point_b, &mut commands);
+            // spawn_line(point_a, point_b, &mut commands);
 
             // println!("a: {:?} b: {:?} c: {:?} d: {:?}", corner_a, corner_b, corner_c, corner_d);
             println!("Line State: {:?}", line_state);
@@ -134,15 +160,31 @@ pub fn spawn_camera(mut commands: Commands, window_query: Query<&Window, With<Pr
     });
 }
 
-fn spawn_line(point_start: pointVector, point_end: pointVector, commands: &mut Commands) {
+fn spawn_line(point_start: pointVector, point_end: pointVector, commands: &mut Commands, line_state: i64) {
+    let mut abs_difference = 0.0;
+    let length;
+
+
     let point_end_vector = Vec2::new(point_end.x_coord, point_end.y_coord);
     let point_start_vector =  Vec2::new(point_start.x_coord, point_start.y_coord);
     let diff_vector = point_end_vector - point_start_vector;
-    let abs_difference_1 = (diff_vector.y.atan2(diff_vector.x) - (-std::f32::consts::FRAC_PI_4))
-        .abs()
+    let abs_diff_str_1 = "1, 4, 10, 11, 14";
+    let abs_diff_str_2 = "2, 5, 7, 8, 13, 15";
+    if abs_diff_str_1.contains(&line_state.to_string()) {
+        abs_difference = diff_vector.y.atan2(diff_vector.x) - (-std::f32::consts::FRAC_PI_4).abs()
         .to_degrees();
+    }
+    else if abs_diff_str_2.contains(&line_state.to_string()) {
+        abs_difference = (diff_vector.y.atan2(diff_vector.x) - (3.0 * std::f32::consts::FRAC_PI_4)).abs()
+        .to_degrees();
+    }
+    else {
+        abs_difference = diff_vector.y.atan2(diff_vector.x) - (-std::f32::consts::FRAC_PI_4).abs()
+        .to_degrees();
+    }
+        
 
-    let length = point_end_vector.distance(point_start_vector);
+    length = point_end_vector.distance(point_start_vector).abs();
 
     commands.spawn(SpriteBundle {
         sprite: Sprite {
@@ -150,8 +192,8 @@ fn spawn_line(point_start: pointVector, point_end: pointVector, commands: &mut C
             custom_size: Some(Vec2::new(length, 1.0)),
             ..default()
         },
-        transform: Transform::from_translation(Vec3::new(point_start.x_coord, point_start.y_coord, 1.0))
-            .with_rotation(Quat::from_rotation_z(abs_difference_1)),
+        // transform: Transform::from_translation(Vec3::new(point_start.x_coord, point_start.y_coord, 1.0)).with_rotation(Quat::from_rotation_z(abs_difference)),
+            transform: Transform::from_translation(Vec3::new(point_start.x_coord, point_start.y_coord, 1.0)),
         ..default()
     });
 }
