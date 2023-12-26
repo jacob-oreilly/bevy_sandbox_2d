@@ -165,13 +165,16 @@ fn spawn_line(point_start: pointVector, point_end: pointVector, commands: &mut C
     let diff_vector = point_end_vector - point_start_vector;
     let abs_diff_str_1 = "1, 4, 10, 11, 14";
     let abs_diff_str_2 = "2, 5, 7, 8, 13, 15";
+    let abs_diff_str_3 = "6, 9";
     if abs_diff_str_1.contains(&line_state.to_string()) {
-        abs_difference = (diff_vector.y.atan2(diff_vector.x) - (3.0 * std::f32::consts::FRAC_PI_4)).abs()
-        .to_degrees();
-        
+        abs_difference = diff_vector.y.atan2(diff_vector.x) - (-std::f32::consts::FRAC_PI_4).abs().to_degrees();
     }
     else if abs_diff_str_2.contains(&line_state.to_string()) {
-        abs_difference = diff_vector.y.atan2(diff_vector.x) - (-std::f32::consts::FRAC_PI_4).abs().to_degrees();
+        abs_difference = (diff_vector.y.atan2(diff_vector.x) - (3.0 * std::f32::consts::FRAC_PI_2)).abs()
+        .to_degrees();
+    }
+    else if abs_diff_str_3.contains(&line_state.to_string()){
+        abs_difference = std::f32::consts::FRAC_PI_2;
     }
     else {
         abs_difference = 0.0;
