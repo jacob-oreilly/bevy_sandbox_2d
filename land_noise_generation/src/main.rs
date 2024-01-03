@@ -25,23 +25,27 @@ fn setup(
     window_query: Query<&Window, With<PrimaryWindow>>,
 ) {
     let window = window_query.get_single().unwrap();
-    let rez: i64 = 20;
+    let rez: i64 = 50;
     let cols: i64 = (600 / rez);
     let rows = (400 / rez);
     let total_col_row = cols * rows;
     let mut column_major = Vec::new();
 
-    for _n in 1..total_col_row {
+    for _n in 0..total_col_row {
         let mut rng = rand::thread_rng();
         let rand_point: i64 = rng.gen_range(0..=1);
         column_major.push(rand_point);
     }
     println!("{:?}", column_major);
-    for y in 1..rows {
+    for y in 0..rows {
         let y_coord = (y * rez) as f32;
-        for x in 1..cols {
+        for x in 0..cols {
+            // if ((y * cols) + x) > column_major.len() as i64 {
+            //     break;
+            // }
             let x_coord = (x * rez) as f32;
-            let current_index: usize = (y * (x - 1)).try_into().unwrap();
+            let current_index: usize = (((y * cols) + x)).try_into().unwrap();
+            println!("grid current index: {:?}", current_index);
             let color_value = column_major[current_index] as f32;
             // Circle
             commands.spawn(MaterialMesh2dBundle {
@@ -60,20 +64,26 @@ fn setup(
             });
 
             // println!("cols {:?} rows {:?}", cols, rows );
-            // println!("point x {:?} point y {:?}", x_coord, y_coord );
+            println!("point x {:?} point y {:?}", x_coord, y_coord );
             // println!("computed x {:?} coomputed y {:?}", x_coord - cols as f32, y_coord - rows as f32 );
         }
         println!()
     }
 
-    for i in 1..rows {
-        for j in 1..cols {
-            let y = i * rez;
+    for i in 0..rows {
+        let y = i * rez;
+        for j in 0..cols {
             let x = j * rez;
-            let corner_a: usize = (i * (j - 1)).try_into().unwrap();
-            let corner_b: usize = (i * j).try_into().unwrap();
-            let corner_c: usize = ((i + 1) * j).try_into().unwrap();
-            let corner_d: usize = ((i + 1) * (j - 1)).try_into().unwrap();
+            let current_y = i * (cols);
+            if (current_y + (j + 1) + cols) >= column_major.len() as i64 {
+                break;
+            }
+            let corner_a: usize = (current_y + j).try_into().unwrap();
+            let corner_b: usize = (current_y + (j + 1)).try_into().unwrap();
+            let corner_c: usize = (current_y + j + cols).try_into().unwrap();
+            let corner_d: usize = (current_y + (j + 1) + cols).try_into().unwrap();
+            println!("{:?}", current_y);
+
 
             let point_a = pointVector {
                 x_coord: x as f32 + (rez as f32 * 0.5),
@@ -98,42 +108,46 @@ fn setup(
                 column_major[corner_c],
                 column_major[corner_d],
             );
+            // println!("column major at a: {:?} is {:?}", corner_a, column_major[corner_a]);
+            // println!("column major at b: {:?} is {:?}", corner_b, column_major[corner_b]);
+            // println!("column major at c: {:?} is {:?}", corner_c, column_major[corner_c]);
+            // println!("column major at d: {:?} is {:?}", corner_d, column_major[corner_d]);
 
             match line_state {
                 1 | 14 => {
                     println!("d-c");
-                    spawn_line(point_d, point_c, &mut commands, line_state);
-                },
+                    spawn_line(point_d, point_c, &mut commands, line_state, rez);
+                }
                 2 | 13 => {
                     println!("c-b");
-                    spawn_line(point_c, point_b, &mut commands, line_state);
-                },
+                    spawn_line(point_c, point_b, &mut commands, line_state, rez);
+                }
                 3 | 12 => {
                     println!("d-b");
-                    spawn_line(point_d, point_b, &mut commands, line_state);
-                },
+                    spawn_line(point_d, point_b, &mut commands, line_state, rez);
+                }
                 4 | 11 => {
                     println!("a-b");
-                    spawn_line(point_a, point_b, &mut commands, line_state);
-                },
+                    spawn_line(point_a, point_b, &mut commands, line_state, rez);
+                }
                 5 => {
                     println!("d-a & c-b");
-                    spawn_line(point_d, point_a, &mut commands, line_state);
-                    spawn_line(point_c, point_b, &mut commands, line_state);
-                },
+                    spawn_line(point_d, point_a, &mut commands, line_state, rez);
+                    spawn_line(point_c, point_b, &mut commands, line_state, rez);
+                }
                 6 | 9 => {
                     println!("a-c");
-                    spawn_line(point_a, point_c, &mut commands, line_state);
-                },
+                    spawn_line(point_a, point_c, &mut commands, line_state, rez);
+                }
                 7 | 8 => {
                     println!("d-a");
-                    spawn_line(point_d, point_a, &mut commands, line_state);
-                },
+                    spawn_line(point_d, point_a, &mut commands, line_state, rez);
+                }
                 10 => {
-                    println!("a-b & d-c");
-                    spawn_line(point_a, point_b, &mut commands, line_state);
-                    spawn_line(point_d, point_c, &mut commands, line_state);
-                },
+                    println!("a-b & d-a");
+                    spawn_line(point_a, point_b, &mut commands, line_state, rez);
+                    spawn_line(point_d, point_c, &mut commands, line_state, rez);
+                }
                 _ => (),
             }
         }
@@ -155,42 +169,102 @@ pub fn spawn_camera(mut commands: Commands, window_query: Query<&Window, With<Pr
     });
 }
 
-fn spawn_line(point_start: pointVector, point_end: pointVector, commands: &mut Commands, line_state: i64) {
+fn spawn_line(
+    point_start: pointVector,
+    point_end: pointVector,
+    commands: &mut Commands,
+    line_state: i64,
+    rez: i64,
+) {
     let mut abs_difference;
-    let length;
-
+    let mut length = 0.0;
+    let color: Color;
 
     let point_end_vector = Vec2::new(point_end.x_coord, point_end.y_coord);
-    let point_start_vector =  Vec2::new(point_start.x_coord, point_start.y_coord);
+    let point_start_vector = Vec2::new(point_start.x_coord, point_start.y_coord);
     let diff_vector = point_end_vector - point_start_vector;
-    let abs_diff_str_1 = "1, 4, 10, 11, 14";
-    let abs_diff_str_2 = "2, 5, 7, 8, 13, 15";
-    let abs_diff_str_3 = "6, 9";
-    if abs_diff_str_1.contains(&line_state.to_string()) {
-        abs_difference = diff_vector.y.atan2(diff_vector.x) - (-std::f32::consts::FRAC_PI_4).abs().to_degrees();
+    let abs_diff_str_1 = [1, 4, 10, 11, 14];
+    let abs_diff_str_2 = [2, 5, 7, 8, 13, 15];
+    let abs_diff_str_3 = [6, 9];
+
+    if abs_diff_str_1.contains(&line_state) {
+        abs_difference = -diff_vector.y.atan2(diff_vector.x);
+        // println!("abs 1: {:?}", abs_difference);
+        color = Color::BLUE;
+        // length = point_end_vector.distance(point_start_vector);
+        // commands.spawn(SpriteBundle {
+        //     sprite: Sprite {
+        //         color: color,
+        //         custom_size: Some(Vec2::new(length, 1.0)),
+        //         ..default()
+        //     },
+        //     transform: Transform::from_translation(
+        //         Vec3::new(
+        //         point_start.x_coord + (rez as f32 * 0.5),
+        //         point_start.y_coord,
+        //         1.0,
+        //         ))
+        //     .with_rotation(Quat::from_rotation_z(abs_difference)),
+        //     ..default()
+        // });
     }
-    else if abs_diff_str_2.contains(&line_state.to_string()) {
-        abs_difference = (diff_vector.y.atan2(diff_vector.x) - (3.0 * std::f32::consts::FRAC_PI_2)).abs()
-        .to_degrees();
+    else if abs_diff_str_2.contains(&line_state) {
+        // println!(
+        //     "atan2: {:?}",
+        //     diff_vector.y.atan2(diff_vector.x).to_degrees()
+        // );
+        abs_difference = (diff_vector.y.atan2(diff_vector.x)).abs();
+        // println!("abs 2: {:?}", abs_difference);
+        color = Color::RED;
     }
-    else if abs_diff_str_3.contains(&line_state.to_string()){
+    else if abs_diff_str_3.contains(&line_state){
         abs_difference = std::f32::consts::FRAC_PI_2;
+        // println!("abs 3: {:?}", abs_difference);
+        color = Color::GREEN;
+        length = point_end_vector.distance(point_start_vector);
+        commands.spawn(SpriteBundle {
+            sprite: Sprite {
+                color: color,
+                custom_size: Some(Vec2::new(length, 1.0)),
+                ..default()
+            },
+            transform: Transform::from_translation(
+                Vec3::new(
+                point_start.x_coord,
+                point_start.y_coord,
+                1.0,
+                ))
+            .with_rotation(Quat::from_rotation_z(abs_difference)),
+            ..default()
+        });
     }
     else {
         abs_difference = 0.0;
+        // println!("abs 4: {:?}", abs_difference);
+        color = Color::GREEN;
+        // length = point_end_vector.distance(point_start_vector);
+        // commands.spawn(SpriteBundle {
+        //     sprite: Sprite {
+        //         color: color,
+        //         custom_size: Some(Vec2::new(length, 1.0)),
+        //         ..default()
+        //     },
+        //     transform: Transform::from_translation(
+        //         Vec3::new(
+        //         point_start.x_coord + (rez as f32 * 0.5),
+        //         point_start.y_coord,
+        //         1.0,
+        //         ))
+        //     .with_rotation(Quat::from_rotation_z(abs_difference)),
+        //     ..default()
+        // });
     }
-    length = point_end_vector.distance(point_start_vector);
-    println!("line_state: {:?} point_start: {:?} point_end: {:?} length: {:?}", line_state, point_start, point_end, length);
+    println!(
+        "line_state: {:?} point_start: {:?} point_end: {:?} length: {:?}",
+        line_state, point_start, point_end, length
+    );
+
     
-    commands.spawn(SpriteBundle {
-        sprite: Sprite {
-            color: Color::BLUE,
-            custom_size: Some(Vec2::new(length, 1.0)),
-            ..default()
-        },
-        transform: Transform::from_translation(Vec3::new(point_start.x_coord, point_start.y_coord, 1.0)).with_rotation(Quat::from_rotation_z(abs_difference)),
-        ..default()
-    });
 }
 
 fn get_line_state(a: i64, b: i64, c: i64, d: i64) -> i64 {
