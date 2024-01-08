@@ -1,5 +1,5 @@
 use bevy::{
-    prelude::*, render::color, sprite::MaterialMesh2dBundle, transform::commands,
+    prelude::*, render::{color, render_resource::encase::rts_array::Length}, sprite::MaterialMesh2dBundle, transform::commands,
     window::PrimaryWindow,
 };
 use rand::Rng;
@@ -15,6 +15,7 @@ fn main() {
             ..default()
         }))
         .add_systems(Startup, (setup, spawn_camera))
+        .add_systems(Update, cursor_events)
         .run();
 }
 
@@ -26,23 +27,25 @@ fn setup(
 ) {
     let window = window_query.get_single().unwrap();
     let rez: i64 = 50;
-    let cols: i64 = (600 / rez);
-    let rows = (400 / rez);
+    // let cols: i64 = (600 / rez);
+    // let rows = (400 / rez);
+    let rows = 4;
+    let cols = 16;
     let total_col_row = cols * rows;
-    let mut column_major = Vec::new();
+    // let mut column_major = Vec::new();
+    let column_major = vec![0,0,1,1,1,0,0,1,0,1,1,0,0,0,0,0,1,1,0,0,1,0,0,1,0,0,0,0,1,0,0,1,1,0,0,1,1,1,0,0,1,0,0,1,1,1,1,1,0,1,1,0,1,1,0,0,1,1,1,1,0,1,1,0];
 
-    for _n in 0..total_col_row {
-        let mut rng = rand::thread_rng();
-        let rand_point: i64 = rng.gen_range(0..=1);
-        column_major.push(rand_point);
-    }
+    // for _n in 0..total_col_row {
+    //     let mut rng = rand::thread_rng();
+    //     let rand_point: i64 = rng.gen_range(0..=1);
+    //     column_major.push(rand_point);
+    // }
+    println!("{:?}", column_major.length());
     println!("{:?}", column_major);
     for y in 0..rows {
         let y_coord = (y * rez) as f32;
+        // let mut current_index = 0;
         for x in 0..cols {
-            // if ((y * cols) + x) > column_major.len() as i64 {
-            //     break;
-            // }
             let x_coord = (x * rez) as f32;
             let current_index: usize = (((y * cols) + x)).try_into().unwrap();
             println!("grid current index: {:?}", current_index);
@@ -67,7 +70,6 @@ fn setup(
             println!("point x {:?} point y {:?}", x_coord, y_coord );
             // println!("computed x {:?} coomputed y {:?}", x_coord - cols as f32, y_coord - rows as f32 );
         }
-        println!()
     }
 
     for i in 0..rows {
@@ -80,8 +82,8 @@ fn setup(
             }
             let corner_a: usize = (current_y + j).try_into().unwrap();
             let corner_b: usize = (current_y + (j + 1)).try_into().unwrap();
-            let corner_c: usize = (current_y + j + cols).try_into().unwrap();
-            let corner_d: usize = (current_y + (j + 1) + cols).try_into().unwrap();
+            let corner_d: usize = (current_y + j + cols).try_into().unwrap();
+            let corner_c: usize = (current_y + (j + 1) + cols).try_into().unwrap();
             println!("{:?}", current_y);
 
 
@@ -186,79 +188,51 @@ fn spawn_line(
     let abs_diff_str_1 = [1, 4, 10, 11, 14];
     let abs_diff_str_2 = [2, 5, 7, 8, 13, 15];
     let abs_diff_str_3 = [6, 9];
+    let mut x_start_coord_offset = point_start.x_coord;
+    let mut y_start_coord_offset = point_start.y_coord;
 
     if abs_diff_str_1.contains(&line_state) {
-        abs_difference = -diff_vector.y.atan2(diff_vector.x);
-        // println!("abs 1: {:?}", abs_difference);
+        abs_difference = diff_vector.y.atan2(diff_vector.x);
         color = Color::BLUE;
-        // length = point_end_vector.distance(point_start_vector);
-        // commands.spawn(SpriteBundle {
-        //     sprite: Sprite {
-        //         color: color,
-        //         custom_size: Some(Vec2::new(length, 1.0)),
-        //         ..default()
-        //     },
-        //     transform: Transform::from_translation(
-        //         Vec3::new(
-        //         point_start.x_coord + (rez as f32 * 0.5),
-        //         point_start.y_coord,
-        //         1.0,
-        //         ))
-        //     .with_rotation(Quat::from_rotation_z(abs_difference)),
-        //     ..default()
-        // });
+        length = point_end_vector.distance(point_start_vector);
+        x_start_coord_offset = x_start_coord_offset + (rez as f32 * 0.25);
+        y_start_coord_offset = y_start_coord_offset + (rez as f32 * 0.25);
     }
     else if abs_diff_str_2.contains(&line_state) {
-        // println!(
-        //     "atan2: {:?}",
-        //     diff_vector.y.atan2(diff_vector.x).to_degrees()
-        // );
-        abs_difference = (diff_vector.y.atan2(diff_vector.x)).abs();
-        // println!("abs 2: {:?}", abs_difference);
+        abs_difference = diff_vector.y.atan2(diff_vector.x);
         color = Color::RED;
+        length = point_end_vector.distance(point_start_vector);
+        x_start_coord_offset = x_start_coord_offset + (rez as f32 * 0.25);
+        y_start_coord_offset = y_start_coord_offset - (rez as f32 * 0.25);
     }
     else if abs_diff_str_3.contains(&line_state){
         abs_difference = std::f32::consts::FRAC_PI_2;
-        // println!("abs 3: {:?}", abs_difference);
         color = Color::GREEN;
         length = point_end_vector.distance(point_start_vector);
-        commands.spawn(SpriteBundle {
-            sprite: Sprite {
-                color: color,
-                custom_size: Some(Vec2::new(length, 1.0)),
-                ..default()
-            },
-            transform: Transform::from_translation(
-                Vec3::new(
-                point_start.x_coord,
-                point_start.y_coord,
-                1.0,
-                ))
-            .with_rotation(Quat::from_rotation_z(abs_difference)),
-            ..default()
-        });
+        y_start_coord_offset = y_start_coord_offset + (rez as f32 * 0.5);
     }
     else {
         abs_difference = 0.0;
-        // println!("abs 4: {:?}", abs_difference);
         color = Color::GREEN;
-        // length = point_end_vector.distance(point_start_vector);
-        // commands.spawn(SpriteBundle {
-        //     sprite: Sprite {
-        //         color: color,
-        //         custom_size: Some(Vec2::new(length, 1.0)),
-        //         ..default()
-        //     },
-        //     transform: Transform::from_translation(
-        //         Vec3::new(
-        //         point_start.x_coord + (rez as f32 * 0.5),
-        //         point_start.y_coord,
-        //         1.0,
-        //         ))
-        //     .with_rotation(Quat::from_rotation_z(abs_difference)),
-        //     ..default()
-        // });
+        length = point_end_vector.distance(point_start_vector);
+        x_start_coord_offset = x_start_coord_offset + (rez as f32 * 0.5);
+        
     }
+    commands.spawn(SpriteBundle {
+        sprite: Sprite {
+            color: color,
+            custom_size: Some(Vec2::new(length, 1.0)),
+            ..default()
+        },
+        transform: Transform::from_translation(
+            Vec3::new(
+            x_start_coord_offset,
+            y_start_coord_offset,
+            1.0,
+            ))
+        .with_rotation(Quat::from_rotation_z(abs_difference)),
+        ..default()
+    });
     println!(
         "line_state: {:?} point_start: {:?} point_end: {:?} length: {:?}",
         line_state, point_start, point_end, length
@@ -269,4 +243,15 @@ fn spawn_line(
 
 fn get_line_state(a: i64, b: i64, c: i64, d: i64) -> i64 {
     a * 8 + b * 4 + c * 2 + d * 1
+}
+
+fn cursor_events(
+    mut cursor_evr: EventReader<CursorMoved>,
+) {
+    for ev in cursor_evr.read() {
+        println!(
+            "New cursor position: X: {}, Y: {}, in Window ID: {:?}",
+            ev.position.x / 2.0, ev.position.y / 2.0, ev.window
+        );
+    }
 }
