@@ -27,19 +27,19 @@ fn setup(
 ) {
     let window = window_query.get_single().unwrap();
     let rez: i64 = 50;
-    // let cols: i64 = (600 / rez);
-    // let rows = (400 / rez);
-    let rows = 4;
-    let cols = 16;
+    let cols: i64 = (600 / rez) + 1;
+    let rows = (400 / rez) + 1;
+    // let rows = 4;
+    // let cols = 16;
     let total_col_row = cols * rows;
-    // let mut column_major = Vec::new();
-    let column_major = vec![0,0,1,1,1,0,0,1,0,1,1,0,0,0,0,0,1,1,0,0,1,0,0,1,0,0,0,0,1,0,0,1,1,0,0,1,1,1,0,0,1,0,0,1,1,1,1,1,0,1,1,0,1,1,0,0,1,1,1,1,0,1,1,0];
+    let mut column_major = Vec::new();
+    // let column_major = vec![0,0,1,1,1,0,0,1,0,1,1,0,0,0,0,0,1,1,0,0,1,0,0,1,0,0,0,0,1,0,0,1,1,0,0,1,1,1,0,0,1,0,0,1,1,1,1,1,0,1,1,0,1,1,0,0,1,1,1,1,0,1,1,0];
 
-    // for _n in 0..total_col_row {
-    //     let mut rng = rand::thread_rng();
-    //     let rand_point: i64 = rng.gen_range(0..=1);
-    //     column_major.push(rand_point);
-    // }
+    for _n in 0..total_col_row {
+        let mut rng = rand::thread_rng();
+        let rand_point: i64 = rng.gen_range(0..=1);
+        column_major.push(rand_point);
+    }
     println!("{:?}", column_major.length());
     println!("{:?}", column_major);
     for y in 0..rows {
@@ -65,10 +65,7 @@ fn setup(
                 transform: Transform::from_xyz(x_coord, y_coord, 0.0),
                 ..default()
             });
-
-            // println!("cols {:?} rows {:?}", cols, rows );
             println!("point x {:?} point y {:?}", x_coord, y_coord );
-            // println!("computed x {:?} coomputed y {:?}", x_coord - cols as f32, y_coord - rows as f32 );
         }
     }
 
@@ -110,10 +107,6 @@ fn setup(
                 column_major[corner_c],
                 column_major[corner_d],
             );
-            // println!("column major at a: {:?} is {:?}", corner_a, column_major[corner_a]);
-            // println!("column major at b: {:?} is {:?}", corner_b, column_major[corner_b]);
-            // println!("column major at c: {:?} is {:?}", corner_c, column_major[corner_c]);
-            // println!("column major at d: {:?} is {:?}", corner_d, column_major[corner_d]);
 
             match line_state {
                 1 | 14 => {
@@ -166,7 +159,7 @@ pub fn spawn_camera(mut commands: Commands, window_query: Query<&Window, With<Pr
     let window = window_query.get_single().unwrap();
 
     commands.spawn(Camera2dBundle {
-        transform: Transform::from_xyz(window.width() / 2.0, window.height() / 2.0, 0.0),
+        transform: Transform::from_xyz(window.width() / 2.0 - 25.0, window.height() / 2.0 -25.0, 0.0),
         ..default()
     });
 }
