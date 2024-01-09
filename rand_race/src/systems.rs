@@ -8,3 +8,7 @@ pub fn spawn_camera(mut commands: Commands, window_query: Query<&Window, With<Pr
         ..default()
     });
 }
+
+pub fn setup() {
+    println!("Random Race!");
+}

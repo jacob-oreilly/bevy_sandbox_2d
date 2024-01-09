@@ -9,7 +9,3 @@ fn main() {
         .add_systems(Startup, (setup, spawn_camera))
         .run();
 }
-
-fn setup() {
-    println!("Random Race!");
-}
