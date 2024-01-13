@@ -1,15 +1,27 @@
+use crate::components::PlayerCamera;
+
 use super::components::Player;
-use bevy::{prelude::*, sprite::MaterialMesh2dBundle, window::PrimaryWindow, ecs::system::adapter::new, math::vec3};
+use bevy::{prelude::*, sprite::MaterialMesh2dBundle, window::PrimaryWindow, ecs::system::adapter::new, math::vec3, transform, render::camera};
 
 pub const PLAYER_SPEED: f32 = 500.0;
 
 pub fn spawn_camera(mut commands: Commands, window_query: Query<&Window, With<PrimaryWindow>>) {
     let window = window_query.get_single().unwrap();
 
-    commands.spawn(Camera2dBundle {
-        transform: Transform::from_xyz(window.width() / 2.0, window.height() / 2.0, 0.0),
-        ..default()
-    });
+    commands.spawn(
+        (Camera2dBundle {
+                transform: Transform::from_xyz(window.width() / 2.0, window.height() / 2.0, 0.0),
+                ..default()
+            },
+            PlayerCamera {
+                focus: Vec3::ZERO,
+            }
+        )
+    );
+}
+
+pub fn spawn_background(mut commands: Commands, meshes: ResMut<Assets<Mesh>>, materials: ResMut<Assets<ColorMaterial>>) {
+
 }
 
 pub fn setup() {
@@ -75,6 +87,16 @@ pub fn player_movement(
 }
 
 //Implement camera follow and turn with car so forward direction won't always be the same.
-pub fn update_camera(commands: Commands, ) {
+pub fn update_camera(player_query: Query<&Transform, With<Player>>, 
+    mut camera_query: Query<(&mut Transform, &mut PlayerCamera), Without<Player>>) {
+    
+    let Ok(player) = player_query.get_single() else {return};
+    let Ok((mut camera_transform, mut player_camera))  = camera_query.get_single_mut() else {return};
+    
+    let delta = player.translation - camera_transform.translation;
 
+    if delta != Vec3::ZERO {
+        player_camera.focus = player.translation;
+        camera_transform.translation += delta;
+    }
 }
