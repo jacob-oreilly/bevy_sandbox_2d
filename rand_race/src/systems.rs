@@ -77,6 +77,7 @@ pub fn player_movement(
         let movement_direction = transform_rotate * Vec3::Y;
         let movement_distance = direction * player.movement_speed * time.delta_seconds();
         transform.translation += movement_direction * movement_distance;
+        println!("Player loc: {:?}", transform.translation);
        
     }
 }
