@@ -1,9 +1,8 @@
 use crate::components::PlayerCamera;
 
 use super::components::Player;
-use bevy::{prelude::*, sprite::MaterialMesh2dBundle, window::PrimaryWindow, ecs::system::adapter::new, math::vec3, transform, render::camera};
+use bevy::{prelude::*, sprite::MaterialMesh2dBundle, window::PrimaryWindow};
 
-pub const PLAYER_SPEED: f32 = 500.0;
 
 pub fn spawn_camera(mut commands: Commands, window_query: Query<&Window, With<PrimaryWindow>>) {
     let window = window_query.get_single().unwrap();
@@ -18,10 +17,6 @@ pub fn spawn_camera(mut commands: Commands, window_query: Query<&Window, With<Pr
             }
         )
     );
-}
-
-pub fn spawn_background(mut commands: Commands, meshes: ResMut<Assets<Mesh>>, materials: ResMut<Assets<ColorMaterial>>) {
-
 }
 
 pub fn setup() {
