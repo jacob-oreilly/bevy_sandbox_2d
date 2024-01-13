@@ -1,5 +1,5 @@
 use super::components::Player;
-use bevy::{prelude::*, sprite::MaterialMesh2dBundle, window::PrimaryWindow};
+use bevy::{prelude::*, sprite::MaterialMesh2dBundle, window::PrimaryWindow, ecs::system::adapter::new, math::vec3};
 
 pub const PLAYER_SPEED: f32 = 500.0;
 
@@ -30,7 +30,10 @@ pub fn spawn_entities(
             transform: Transform::from_xyz(window.width() / 2.0, window.height() / 2.0, 0.0),
             ..default()
         },
-        Player {},
+        Player {
+            movement_speed: 500.0,
+            rotation_speed: f32::to_radians(360.0)
+        },
     ));
 }
 
@@ -38,34 +41,40 @@ pub fn spawn_entities(
 //TODO need to add coasting on button release and calculating real physics.
 pub fn player_movement(
     keys: Res<Input<KeyCode>>,
-    mut player_query: Query<&mut Transform, With<Player>>,
+    mut player_query: Query<(&mut Transform, &Player)>,
     time: Res<Time>,
 ) {
-    if let Ok(mut transform) = player_query.get_single_mut() {
-        let mut direction = Vec3::ZERO;
+
+    if let Ok((mut transform, player)) = player_query.get_single_mut() {
+        let mut direction = 0.0;
+        let mut rotation = 0.0;
         if keys.pressed(KeyCode::W) {
-            direction += Vec3::new(0.0, 1.0, 0.0);
+            direction += 1.0;
             println!("Drive forward");
         }
         if keys.pressed(KeyCode::A) {
-            direction += Vec3::new(-1.0, 0.0, 0.0);
+            rotation += 1.0;
             println!("Turn player left");
         }
         if keys.pressed(KeyCode::D) {
-            direction += Vec3::new(1.0, 0.0, 0.0);
+            rotation -= 1.0;
             println!("Turn player right");
         }
         if keys.pressed(KeyCode::S) {
-            direction += Vec3::new(0.0, -1.0, 0.0);
+            direction -= 1.0;
             println!("Reverse");
         }
 
-        if direction.length() > 0.0 {
-            direction = direction.normalize();
-        }
-
-        transform.translation += direction * PLAYER_SPEED * time.delta_seconds();
+        transform.rotate_z(rotation * player.rotation_speed * time.delta_seconds());
+        let transform_rotate = transform.rotation;
+        let movement_direction = transform_rotate * Vec3::Y;
+        let movement_distance = direction * player.movement_speed * time.delta_seconds();
+        transform.translation += movement_direction * movement_distance;
+       
     }
 }
 
 //Implement camera follow and turn with car so forward direction won't always be the same.
+pub fn update_camera(commands: Commands, ) {
+
+}
