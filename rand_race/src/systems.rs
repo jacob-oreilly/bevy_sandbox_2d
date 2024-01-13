@@ -25,7 +25,7 @@ pub fn spawn_entities(
     let window = window_query.get_single().unwrap();
     commands.spawn((
         MaterialMesh2dBundle {
-            mesh: meshes.add(shape::Circle::new(10.0).into()).into(),
+            mesh: meshes.add(shape::Quad::new(Vec2 { x: 10.0, y: 20.0 }).into()).into(),
             material: materials.add(Color::rgba_linear(255.0, 255.0, 255.0, 1.0).into()),
             transform: Transform::from_xyz(window.width() / 2.0, window.height() / 2.0, 0.0),
             ..default()
