@@ -126,23 +126,27 @@ fn ray_intersect_update(
     ) {
     //Where we will do the calculations for the intersections
     let (ray_transform, ray_entity, ray_handle) = ray_query.get_single_mut().unwrap();
-    let x_offset = 20. / 2.0 + my_cursor.loc.x;
-    let ray_coord = Vec3::new(x_offset, my_cursor.loc.y, 0.0); 
+    
+    
     for wall in wall_query.iter_mut() {
-        let distance = ray_transform.translation.distance(wall.translation);
+        // let distance = ray_transform.translation.distance(wall.translation);
+        let distance = wall.translation - ray_transform.translation;
+        let x_offset = distance.x / 2.0 + my_cursor.loc.x;
+        let ray_coord = Vec3::new(x_offset, my_cursor.loc.y, 0.0); 
         let current_ray_assets = RayAssets {
-            mesh: meshes.add(shape::Quad::new(Vec2::new(distance, 2.)).into()).into(),
+            mesh: meshes.add(shape::Quad::new(Vec2::new(distance.x, 2.)).into()).into(),
             material: materials.add(ColorMaterial::from(Color::WHITE)),
         };
-        commands.entity(ray_entity).insert(MaterialMesh2dBundle {
-            mesh: bevy::sprite::Mesh2dHandle(current_ray_assets.mesh),
-            material: current_ray_assets.material,
-            transform: Transform::from_translation(ray_coord),
-            ..default()
-        });
+        
         // println!("Ray Entity: {:?}",  );
-        if distance.abs() > 0.0 {
-            ray_assets.mesh = meshes.add(shape::Quad::new(Vec2::new(distance, 2.)).into()).into();
+        if distance.x > 0.0 {
+            commands.entity(ray_entity).insert(MaterialMesh2dBundle {
+                mesh: bevy::sprite::Mesh2dHandle(current_ray_assets.mesh),
+                material: current_ray_assets.material,
+                transform: Transform::from_translation(ray_coord),
+                ..default()
+            });
+            ray_assets.mesh = meshes.add(shape::Quad::new(Vec2::new(distance.x, 2.)).into()).into();
         }
     }   
     
