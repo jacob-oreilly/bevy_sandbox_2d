@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use bevy::{
-    math::vec2,
+    math::{vec2, vec3},
     prelude::*,
     sprite::{MaterialMesh2dBundle, Mesh2d},
     transform,
@@ -51,12 +51,13 @@ fn setup(
     let window = window_query.get_single().unwrap();
     commands.spawn((Camera2dBundle::default(), MainCamera));
     my_cursor.loc = Vec2::new(0.0, 0.0);
+
+    let box_v1 = Vec3::new(0.0, 150.0, 0.0);
+    let box_v2 = Vec3::new(2.0, -150.0, 0.0);
     //Wall
     commands.spawn((
         MaterialMesh2dBundle {
-            mesh: meshes
-                .add(shape::Quad::new(Vec2::new(2.0, 300.)).into())
-                .into(),
+            mesh: bevy::sprite::Mesh2dHandle(meshes.add(shape::Box::from_corners(box_v1, box_v2).into())),
             material: materials.add(ColorMaterial::from(Color::LIME_GREEN)),
             transform: Transform::from_translation(Vec3::new(100.0, 20.0, 0.)),
             ..default()
@@ -130,6 +131,9 @@ fn ray_intersect_update(
     
     for wall in wall_query.iter_mut() {
         // let distance = ray_transform.translation.distance(wall.translation);
+
+        let x1 = wall.local_y();
+        println!("wall_translation: {:?}", x1);
         let distance = wall.translation - ray_transform.translation;
         let x_offset = distance.x / 2.0 + my_cursor.loc.x;
         let ray_coord = Vec3::new(x_offset, my_cursor.loc.y, 0.0); 
