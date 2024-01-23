@@ -13,8 +13,8 @@ struct Ray {}
 
 #[derive(Component)]
 struct Wall {
-    point_a: Vec2,
-    point_b: Vec2,
+    point_a: Vec3,
+    point_b: Vec3,
 }
 
 #[derive(Component)]
@@ -29,6 +29,12 @@ struct Mouse {
 struct RayAssets {
     mesh: Handle<Mesh>,
     material: Handle<ColorMaterial>,
+}
+
+#[derive(Component)]
+struct RayDirection {
+    direction_x: f32,
+    direction_y: f32
 }
 
 fn main() {
@@ -63,8 +69,8 @@ fn setup(
             ..default()
         },
         Wall {
-            point_a: Vec2::new(100.0, 300.0 / 2.0),
-            point_b: Vec2::new(100.0, -300.0 / 2.0),
+            point_a: box_v1,
+            point_b: box_v2,
         },
     ));
 
@@ -103,6 +109,10 @@ fn draw_rays(
             ..default()
         },
         Ray {},
+        RayDirection{
+            direction_x: x_offset,
+            direction_y: my_cursor.loc.y
+        }
     ));
 }
 
@@ -118,23 +128,30 @@ fn ray_position_update(
 }
 fn ray_intersect_update(
     mut commands: Commands,
-    mut ray_query: Query<(&mut Transform, Entity, &mut Handle<ColorMaterial>), With<Ray>>,
-    mut wall_query: Query<&Transform, Without<Ray>>,
+    mut ray_query: Query<(&mut Transform, Entity, &mut Handle<ColorMaterial>, &mut RayDirection), With<Ray>>,
+    mut wall_query: Query<(&Transform, &mut Wall), Without<Ray>>,
     mut ray_assets: ResMut<RayAssets>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
     mut my_cursor: ResMut<Mouse>,
     ) {
     //Where we will do the calculations for the intersections
-    let (ray_transform, ray_entity, ray_handle) = ray_query.get_single_mut().unwrap();
+    let (ray_transform, ray_entity, ray_handle, mut ray_direction) = ray_query.get_single_mut().unwrap();
     
     
-    for wall in wall_query.iter_mut() {
+    for (wall_transform, wall) in wall_query.iter_mut() {
         // let distance = ray_transform.translation.distance(wall.translation);
-
-        let x1 = wall.local_y();
-        println!("wall_translation: {:?}", x1);
-        let distance = wall.translation - ray_transform.translation;
+        let wall_vec1 = wall.point_a;
+        let wall_vec2 = wall.point_b;
+        //Here we will start the math
+        let is_intersect = calc_intersect(wall_vec1, wall_vec2, &my_cursor, &ray_direction);
+        if is_intersect {
+            println!("Is intersect: {:?}", is_intersect);
+        }
+        
+        let x1 = wall_transform.translation;
+        // println!("wall_translation: {:?}", x1);
+        let distance = wall_transform.translation - ray_transform.translation;
         let x_offset = distance.x / 2.0 + my_cursor.loc.x;
         let ray_coord = Vec3::new(x_offset, my_cursor.loc.y, 0.0); 
         let current_ray_assets = RayAssets {
@@ -142,7 +159,6 @@ fn ray_intersect_update(
             material: materials.add(ColorMaterial::from(Color::WHITE)),
         };
         
-        // println!("Ray Entity: {:?}",  );
         if distance.x > 0.0 {
             commands.entity(ray_entity).insert(MaterialMesh2dBundle {
                 mesh: bevy::sprite::Mesh2dHandle(current_ray_assets.mesh),
@@ -181,6 +197,30 @@ fn cursor_events(
     }
 }
 
+fn calc_intersect(point_a: Vec3, point_b: Vec3, my_cursor: &ResMut<Mouse>, ray_direction: &Mut<RayDirection>) -> bool {
+    let x1 = point_a.x;
+    let y1 = point_a.y;
+    let x2 = point_b.x;
+    let y2 = point_b.y; 
+
+    let x3 = my_cursor.loc.x;
+    let y3 = my_cursor.loc.y;
+    let x4 = my_cursor.loc.x + ray_direction.direction_x;
+    let y4 = my_cursor.loc.y + ray_direction.direction_y;
+
+    let den = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
+    if den == 0.0 {
+        return false;
+    }
+
+    let t = ((x1 - x3) * (y3 - y4) - (y1 - y3) * (x3 - x4)) / den;
+    let u = -((x1 - x2) * (y1 - y3) - (y1 - y2) * (x1 - x3)) / den;
+
+    if t > 0.0 && t < 1.0 && u > 0.0{
+        return true;
+    }
+    return false;
+}   
 // fn cast_update(
 //     mut commands: Commands,
 //     mut meshes: ResMut<Assets<Mesh>>,
