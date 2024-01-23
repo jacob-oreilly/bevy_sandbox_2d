@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{sync::Arc, ptr::null};
 
 use bevy::{
     math::{vec2, vec3},
@@ -60,12 +60,13 @@ fn setup(
 
     let box_v1 = Vec3::new(0.0, 150.0, 0.0);
     let box_v2 = Vec3::new(2.0, -150.0, 0.0);
+    let translation_vec = Vec3::new(100.0, 20.0, 0.);
     //Wall
     commands.spawn((
         MaterialMesh2dBundle {
             mesh: bevy::sprite::Mesh2dHandle(meshes.add(shape::Box::from_corners(box_v1, box_v2).into())),
             material: materials.add(ColorMaterial::from(Color::LIME_GREEN)),
-            transform: Transform::from_translation(Vec3::new(100.0, 20.0, 0.)),
+            transform: Transform::from_translation(translation_vec),
             ..default()
         },
         Wall {
@@ -110,8 +111,8 @@ fn draw_rays(
         },
         Ray {},
         RayDirection{
-            direction_x: x_offset,
-            direction_y: my_cursor.loc.y
+            direction_x: 1.0,
+            direction_y: 0.0
         }
     ));
 }
@@ -134,39 +135,61 @@ fn ray_intersect_update(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
     mut my_cursor: ResMut<Mouse>,
+    window_query: Query<&Window, With<PrimaryWindow>>,
     ) {
     //Where we will do the calculations for the intersections
     let (ray_transform, ray_entity, ray_handle, mut ray_direction) = ray_query.get_single_mut().unwrap();
-    
-    
+    let window = window_query.get_single().unwrap();
+
     for (wall_transform, wall) in wall_query.iter_mut() {
         // let distance = ray_transform.translation.distance(wall.translation);
         let wall_vec1 = wall.point_a;
         let wall_vec2 = wall.point_b;
         //Here we will start the math
-        let is_intersect = calc_intersect(wall_vec1, wall_vec2, &my_cursor, &ray_direction);
-        if is_intersect {
-            println!("Is intersect: {:?}", is_intersect);
-        }
+        let intersect_point = calc_intersect(wall_vec1, wall_vec2, &my_cursor, &ray_direction);
         
-        let x1 = wall_transform.translation;
-        // println!("wall_translation: {:?}", x1);
+
+        // println!("Is intersect: {:?}", intersect_point);
         let distance = wall_transform.translation - ray_transform.translation;
-        let x_offset = distance.x / 2.0 + my_cursor.loc.x;
-        let ray_coord = Vec3::new(x_offset, my_cursor.loc.y, 0.0); 
-        let current_ray_assets = RayAssets {
-            mesh: meshes.add(shape::Quad::new(Vec2::new(distance.x, 2.)).into()).into(),
-            material: materials.add(ColorMaterial::from(Color::WHITE)),
-        };
+        let x_offset: f32;
+        let ray_coord: Vec3;
+        let current_ray_assets: RayAssets;
         
-        if distance.x > 0.0 {
+        if intersect_point != None {
+           
+           
+            println!("Is intersect: {:?}", intersect_point);
+            let intersect_distance = intersect_point.unwrap() - ray_transform.translation;
+            println!("Distance: {:?}", intersect_distance);
+            x_offset = intersect_distance.x / 2.0 + my_cursor.loc.x;
+            ray_coord = Vec3::new(x_offset, my_cursor.loc.y, 0.0);
+            current_ray_assets = RayAssets {
+                mesh: meshes.add(shape::Quad::new(Vec2::new(intersect_distance.x, 2.)).into()).into(),
+                material: materials.add(ColorMaterial::from(Color::WHITE)),
+            };
             commands.entity(ray_entity).insert(MaterialMesh2dBundle {
                 mesh: bevy::sprite::Mesh2dHandle(current_ray_assets.mesh),
                 material: current_ray_assets.material,
                 transform: Transform::from_translation(ray_coord),
                 ..default()
             });
-            ray_assets.mesh = meshes.add(shape::Quad::new(Vec2::new(distance.x, 2.)).into()).into();
+            ray_assets.mesh = meshes.add(shape::Quad::new(Vec2::new(intersect_distance.x, 2.)).into()).into();
+        }
+        else {
+            let x = window.width() - ray_transform.translation.x;
+            x_offset = x / 2.0 + my_cursor.loc.x;
+            ray_coord = Vec3::new(x_offset, my_cursor.loc.y, 0.0);
+            current_ray_assets = RayAssets {
+                mesh: meshes.add(shape::Quad::new(Vec2::new(x, 2.)).into()).into(),
+                material: materials.add(ColorMaterial::from(Color::WHITE)),
+            };
+            commands.entity(ray_entity).insert(MaterialMesh2dBundle {
+                mesh: bevy::sprite::Mesh2dHandle(current_ray_assets.mesh),
+                material: current_ray_assets.material,
+                transform: Transform::from_translation(ray_coord),
+                ..default()
+            });
+            ray_assets.mesh = meshes.add(shape::Quad::new(Vec2::new(x, 2.)).into()).into();
         }
     }   
     
@@ -190,14 +213,23 @@ fn cursor_events(
         .map(|ray| ray.origin.truncate())
     {
         mouse_coords.loc = world_position;
-        println!(
-            "World coords y an x: {:?},{:?}",
-            world_position.x, world_position.y
-        );
+        // println!(
+        //     "World coords y an x: {:?},{:?}",
+        //     world_position.x, world_position.y
+        // );
     }
 }
 
-fn calc_intersect(point_a: Vec3, point_b: Vec3, my_cursor: &ResMut<Mouse>, ray_direction: &Mut<RayDirection>) -> bool {
+// fn update_ray_direction(x, y) {
+
+// }
+
+//This idea will be used for different facing vectors
+// ray_direction.direction_x = wall_vec1.x - my_cursor.loc.x;
+// ray_direction.direction_y = wall_vec1.y - my_cursor.loc.y;
+
+fn calc_intersect(point_a: Vec3, point_b: Vec3, my_cursor: &ResMut<Mouse>, ray_direction: &Mut<RayDirection>) -> Option<Vec3> {
+    let mut intersect_vec = Vec3::ZERO;
     let x1 = point_a.x;
     let y1 = point_a.y;
     let x2 = point_b.x;
@@ -210,17 +242,19 @@ fn calc_intersect(point_a: Vec3, point_b: Vec3, my_cursor: &ResMut<Mouse>, ray_d
 
     let den = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
     if den == 0.0 {
-        return false;
+        return None;
     }
 
     let t = ((x1 - x3) * (y3 - y4) - (y1 - y3) * (x3 - x4)) / den;
     let u = -((x1 - x2) * (y1 - y3) - (y1 - y2) * (x1 - x3)) / den;
 
-    if t > 0.0 && t < 1.0 && u > 0.0{
-        return true;
+    if t > 0.0 && t < 1.0 && u > 0.0 {
+        intersect_vec.x = x1 + t * (x2 - x1);
+        intersect_vec.y = y1 + t * (y2 - y1);
+        return Some(intersect_vec.normalize());
     }
-    return false;
-}   
+    None
+}
 // fn cast_update(
 //     mut commands: Commands,
 //     mut meshes: ResMut<Assets<Mesh>>,
