@@ -7,10 +7,8 @@ pub fn setup(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
-    window_query: Query<&Window, With<PrimaryWindow>>,
     mut my_cursor: ResMut<Mouse>,
 ) {
-    let window = window_query.get_single().unwrap();
     commands.spawn((Camera2dBundle::default(), MainCamera));
     my_cursor.loc = Vec2::new(0.0, 0.0);
 
@@ -34,15 +32,10 @@ pub fn setup(
 
 pub fn draw_rays(
     mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<ColorMaterial>>,
-    window_query: Query<&Window, With<PrimaryWindow>>,
-    mut my_cursor: ResMut<Mouse>,
-    mut ray_assets: ResMut<RayAssets>
+    my_cursor: ResMut<Mouse>,
+    ray_assets: ResMut<RayAssets>
 ) {
     let x_offset = 20. / 2.0 + my_cursor.loc.x;
-    // ray_assets.mesh = meshes.add(shape::Quad::new(Vec2::new(20.0, 2.)).into()).into();
-    // ray_assets.material = materials.add(ColorMaterial::from(Color::WHITE));
     let ray_coord = Vec3::new(x_offset, my_cursor.loc.y, 0.0); 
     commands.spawn((
         MaterialMesh2dBundle {
@@ -61,31 +54,27 @@ pub fn draw_rays(
 
 pub fn ray_intersect_update(
     mut commands: Commands,
-    mut ray_query: Query<(&mut Transform, Entity, &mut Handle<ColorMaterial>, &mut RayDirection), With<Ray>>,
-    mut wall_query: Query<(&Transform, &mut Wall), Without<Ray>>,
+    mut ray_query: Query<(&mut Transform, Entity, &mut RayDirection), With<Ray>>,
+    mut wall_query: Query<&mut Wall, Without<Ray>>,
     mut ray_assets: ResMut<RayAssets>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
-    mut my_cursor: ResMut<Mouse>,
+    my_cursor: ResMut<Mouse>,
     window_query: Query<&Window, With<PrimaryWindow>>,
     ) {
-    //Where we will do the calculations for the intersections
-    let (ray_transform, ray_entity, ray_handle, mut ray_direction) = ray_query.get_single_mut().unwrap();
+    let (ray_transform, ray_entity, ray_direction) = ray_query.get_single_mut().unwrap();
     let window = window_query.get_single().unwrap();
 
-    for (wall_transform, wall) in wall_query.iter_mut() {
+    for wall in wall_query.iter_mut() {
         let wall_vec1 = wall.point_a;
         let wall_vec2 = wall.point_b;
-        //Here we will start the math
         let intersect_point = calc_intersect(wall_vec1, wall_vec2, &my_cursor, &ray_direction);
         let x_offset: f32;
         let ray_coord: Vec3;
         let current_ray_assets: RayAssets;
         
         if intersect_point != None {
-            println!("Is intersect: {:?}", intersect_point);
             let intersect_distance = intersect_point.unwrap() - ray_transform.translation;
-            println!("Distance: {:?}", intersect_distance);
             x_offset = intersect_distance.x / 2.0 + my_cursor.loc.x;
             ray_coord = Vec3::new(x_offset, my_cursor.loc.y, 0.0);
             current_ray_assets = RayAssets {
@@ -122,16 +111,11 @@ pub fn ray_intersect_update(
 
 pub fn cursor_events(
     mut mouse_coords: ResMut<Mouse>,
-    // query to get the window (so we can read the current cursor position)
     q_window: Query<&Window, With<PrimaryWindow>>,
-    // query to get camera transform
     q_camera: Query<(&Camera, &GlobalTransform), With<MainCamera>>,
-    cursor_evr: EventReader<CursorMoved>,
 ) {
     let (camera, camera_transform) = q_camera.single();
     let window = q_window.single();
-    // check if the cursor is inside the window and get its position
-    // then, ask bevy to convert into world coordinates, and truncate to discard Z
     if let Some(world_position) = window
         .cursor_position()
         .and_then(|cursor| camera.viewport_to_world(camera_transform, cursor))

@@ -1,9 +1,5 @@
 
-use bevy::{
-    prelude::*,
-    sprite::MaterialMesh2dBundle,
-    window::PrimaryWindow,
-};
+use bevy::prelude::*;
 
 mod systems;
 use components::*;
