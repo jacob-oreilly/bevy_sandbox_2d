@@ -1,4 +1,4 @@
-use bevy::{prelude::*, sprite::MaterialMesh2dBundle, window::PrimaryWindow};
+use bevy::{prelude::*, render::{mesh::Indices, render_resource::PrimitiveTopology}, sprite::MaterialMesh2dBundle, window::PrimaryWindow};
 
 use crate::{components, resources::{Mouse, RayAssets}, MainCamera, RayDirection, Wall};
 use components::Ray;
@@ -16,32 +16,63 @@ pub fn setup(
     let box_v2 = Vec3::new(2.0, -150.0, 0.0);
     let translation_vec = Vec3::new(0.0, 20.0, 0.);
     //Wall
+    // commands.spawn((
+    //     MaterialMesh2dBundle {
+    //         mesh: bevy::sprite::Mesh2dHandle(meshes.add(shape::Box::from_corners(box_v1, box_v2).into())),
+    //         material: materials.add(ColorMaterial::from(Color::LIME_GREEN)),
+    //         transform: Transform::from_translation(translation_vec),
+    //         ..default()
+    //     },
+    //     Wall {
+    //         point_a: box_v1,
+    //         point_b: box_v2,
+    //     },
+    // ));
+}
+
+//eventually will handle multiple walls
+pub fn draw_walls(
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<ColorMaterial>>
+) {
+    let mut mesh = Mesh::new(PrimitiveTopology::LineList);
+    let line_one = vec![[0.0, 0.0, 0.0],[0.0, 400.0, 0.0]];
+    mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, line_one.clone());
+    let indices: Vec<u32> = vec![0, 1];
+    mesh.set_indices(Some(Indices::U32(indices)));
+
     commands.spawn((
         MaterialMesh2dBundle {
-            mesh: bevy::sprite::Mesh2dHandle(meshes.add(shape::Box::from_corners(box_v1, box_v2).into())),
-            material: materials.add(ColorMaterial::from(Color::LIME_GREEN)),
-            transform: Transform::from_translation(translation_vec),
+            mesh: meshes.add(mesh).into(),
+            material: materials.add(ColorMaterial::from(Color::YELLOW)),
+            transform: Transform::from_translation(Vec3::new(200.0, -200.0,0.0)),
             ..default()
         },
         Wall {
-            point_a: box_v1,
-            point_b: box_v2,
-        },
+            point_a: line_one[0].into(),
+            point_b: line_one[1].into() 
+        }
     ));
 }
 
 pub fn draw_rays(
     mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
     my_cursor: ResMut<Mouse>,
     ray_assets: ResMut<RayAssets>
 ) {
-    let x_offset = 20. / 2.0 + my_cursor.loc.x;
-    let ray_coord = Vec3::new(x_offset, my_cursor.loc.y, 0.0); 
+
+    let mut mesh = Mesh::new(PrimitiveTopology::LineList);
+    let ray_start = vec![[my_cursor.loc.x, my_cursor.loc.y, 0.0],[20.0, my_cursor.loc.y, 0.0]];
+    mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, ray_start);
+    // let x_offset = 20. / 2.0 + my_cursor.loc.x;
     commands.spawn((
         MaterialMesh2dBundle {
-            mesh: bevy::sprite::Mesh2dHandle(ray_assets.mesh.clone()),
-            material: ray_assets.material.clone(),
-            transform: Transform::from_translation(ray_coord),
+            mesh: meshes.add(mesh).into(),
+            material: materials.add(ColorMaterial::from(Color::WHITE)),
+            transform: Transform::from_translation(Vec3::new(0.0, 0.0, 0.0)),
             ..default()
         },
         Ray {},
@@ -56,7 +87,6 @@ pub fn ray_intersect_update(
     mut commands: Commands,
     mut ray_query: Query<(&mut Transform, Entity, &mut RayDirection), With<Ray>>,
     mut wall_query: Query<&mut Wall, Without<Ray>>,
-    mut ray_assets: ResMut<RayAssets>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
     my_cursor: ResMut<Mouse>,
@@ -69,41 +99,33 @@ pub fn ray_intersect_update(
         let wall_vec1 = wall.point_a;
         let wall_vec2 = wall.point_b;
         let intersect_point = calc_intersect(wall_vec1, wall_vec2, &my_cursor, &ray_direction);
-        let x_offset: f32;
         let ray_coord: Vec3;
-        let current_ray_assets: RayAssets;
         
         if intersect_point != None {
-            let intersect_distance = intersect_point.unwrap() - ray_transform.translation;
-            x_offset = intersect_distance.x / 2.0 + my_cursor.loc.x;
-            ray_coord = Vec3::new(x_offset, my_cursor.loc.y, 0.0);
-            current_ray_assets = RayAssets {
-                mesh: meshes.add(shape::Quad::new(Vec2::new(intersect_distance.x, 2.)).into()).into(),
-                material: materials.add(ColorMaterial::from(Color::WHITE)),
-            };
+            let intersect_vec = intersect_point.unwrap();
+            ray_coord = Vec3::new(my_cursor.loc.x, my_cursor.loc.y, 0.0);
+
+            let mut mesh = Mesh::new(PrimitiveTopology::LineList);
+            let ray_start = vec![[my_cursor.loc.x, my_cursor.loc.y, 0.0],[intersect_vec.x, my_cursor.loc.y, 0.0]];
+            mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, ray_start);
             commands.entity(ray_entity).insert(MaterialMesh2dBundle {
-                mesh: bevy::sprite::Mesh2dHandle(current_ray_assets.mesh),
-                material: current_ray_assets.material,
+                mesh: meshes.add(mesh).into(),
+                material: materials.add(ColorMaterial::from(Color::WHITE)),
                 transform: Transform::from_translation(ray_coord),
                 ..default()
             });
-            ray_assets.mesh = meshes.add(shape::Quad::new(Vec2::new(intersect_distance.x, 2.)).into()).into();
         }
         else {
-            let x = window.width() - ray_transform.translation.x;
-            x_offset = x / 2.0 + my_cursor.loc.x;
-            ray_coord = Vec3::new(x_offset, my_cursor.loc.y, 0.0);
-            current_ray_assets = RayAssets {
-                mesh: meshes.add(shape::Quad::new(Vec2::new(x, 2.)).into()).into(),
-                material: materials.add(ColorMaterial::from(Color::WHITE)),
-            };
+            ray_coord = Vec3::new(my_cursor.loc.x, my_cursor.loc.y, 0.0);
+            let mut mesh = Mesh::new(PrimitiveTopology::LineList);
+            let ray_start = vec![[my_cursor.loc.x, my_cursor.loc.y, 0.0],[window.width(), my_cursor.loc.y, 0.0]];
+            mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, ray_start);
             commands.entity(ray_entity).insert(MaterialMesh2dBundle {
-                mesh: bevy::sprite::Mesh2dHandle(current_ray_assets.mesh),
-                material: current_ray_assets.material,
+                mesh: meshes.add(mesh).into(),
+                material: materials.add(ColorMaterial::from(Color::WHITE)),
                 transform: Transform::from_translation(ray_coord),
                 ..default()
             });
-            ray_assets.mesh = meshes.add(shape::Quad::new(Vec2::new(x, 2.)).into()).into();
         }
     }   
     
