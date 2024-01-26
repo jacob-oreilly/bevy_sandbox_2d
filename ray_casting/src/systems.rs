@@ -37,7 +37,7 @@ pub fn draw_walls(
     mut materials: ResMut<Assets<ColorMaterial>>
 ) {
     let mut mesh = Mesh::new(PrimitiveTopology::LineList);
-    let line_one = vec![[0.0, 0.0, 0.0],[0.0, 400.0, 0.0]];
+    let line_one = vec![[0.0, -200.0, 0.0],[0.0, 200.0, 0.0]];
     mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, line_one.clone());
     let indices: Vec<u32> = vec![0, 1];
     mesh.set_indices(Some(Indices::U32(indices)));
@@ -46,7 +46,7 @@ pub fn draw_walls(
         MaterialMesh2dBundle {
             mesh: meshes.add(mesh).into(),
             material: materials.add(ColorMaterial::from(Color::YELLOW)),
-            transform: Transform::from_translation(Vec3::new(200.0, -200.0,0.0)),
+            transform: Transform::from_translation(Vec3::new(0.0, 0.0,0.0)),
             ..default()
         },
         Wall {
@@ -65,8 +65,10 @@ pub fn draw_rays(
 ) {
 
     let mut mesh = Mesh::new(PrimitiveTopology::LineList);
-    let ray_start = vec![[my_cursor.loc.x, my_cursor.loc.y, 0.0],[20.0, my_cursor.loc.y, 0.0]];
+    let ray_start = vec![[0.0, 0.0, 0.0],[0.0, 0.0, 0.0]];
     mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, ray_start);
+    let indices: Vec<u32> = vec![0, 1];
+    mesh.set_indices(Some(Indices::U32(indices)));
     // let x_offset = 20. / 2.0 + my_cursor.loc.x;
     commands.spawn((
         MaterialMesh2dBundle {
@@ -100,30 +102,29 @@ pub fn ray_intersect_update(
         let wall_vec2 = wall.point_b;
         let intersect_point = calc_intersect(wall_vec1, wall_vec2, &my_cursor, &ray_direction);
         let ray_coord: Vec3;
+        let mut mesh = Mesh::new(PrimitiveTopology::LineList);
+        let indices: Vec<u32> = vec![0, 1];
+        mesh.set_indices(Some(Indices::U32(indices)));
         
         if intersect_point != None {
             let intersect_vec = intersect_point.unwrap();
             ray_coord = Vec3::new(my_cursor.loc.x, my_cursor.loc.y, 0.0);
-
-            let mut mesh = Mesh::new(PrimitiveTopology::LineList);
             let ray_start = vec![[my_cursor.loc.x, my_cursor.loc.y, 0.0],[intersect_vec.x, my_cursor.loc.y, 0.0]];
+            println!("intersect_vec: {:?}, ray_coord: {:?}, ray_start: {:?}", intersect_vec, ray_coord, ray_start);
             mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, ray_start);
             commands.entity(ray_entity).insert(MaterialMesh2dBundle {
                 mesh: meshes.add(mesh).into(),
                 material: materials.add(ColorMaterial::from(Color::WHITE)),
-                transform: Transform::from_translation(ray_coord),
                 ..default()
             });
         }
         else {
             ray_coord = Vec3::new(my_cursor.loc.x, my_cursor.loc.y, 0.0);
-            let mut mesh = Mesh::new(PrimitiveTopology::LineList);
             let ray_start = vec![[my_cursor.loc.x, my_cursor.loc.y, 0.0],[window.width(), my_cursor.loc.y, 0.0]];
             mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, ray_start);
             commands.entity(ray_entity).insert(MaterialMesh2dBundle {
                 mesh: meshes.add(mesh).into(),
                 material: materials.add(ColorMaterial::from(Color::WHITE)),
-                transform: Transform::from_translation(ray_coord),
                 ..default()
             });
         }
@@ -149,6 +150,7 @@ pub fn cursor_events(
 
 pub fn calc_intersect(point_a: Vec3, point_b: Vec3, my_cursor: &ResMut<Mouse>, ray_direction: &Mut<RayDirection>) -> Option<Vec3> {
     let mut intersect_vec = Vec3::ZERO;
+    println!("point_a : {:?}, point_b: {:?}", point_a, point_b);
     let x1 = point_a.x;
     let y1 = point_a.y;
     let x2 = point_b.x;
@@ -170,9 +172,12 @@ pub fn calc_intersect(point_a: Vec3, point_b: Vec3, my_cursor: &ResMut<Mouse>, r
     if t > 0.0 && t < 1.0 && u > 0.0 {
         intersect_vec.x = x1 + t * (x2 - x1);
         intersect_vec.y = y1 + t * (y2 - y1);
-        return Some(intersect_vec.normalize());
+        return Some(intersect_vec);
     }
-    None
+    else {
+        None
+    }
+    
 }
 
 //This idea will be used for different facing vectors
