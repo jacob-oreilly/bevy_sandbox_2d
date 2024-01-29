@@ -1,6 +1,15 @@
-use bevy::{prelude::*, render::{mesh::Indices, render_resource::PrimitiveTopology}, sprite::MaterialMesh2dBundle, window::PrimaryWindow};
+use bevy::{
+    prelude::*,
+    render::{mesh::Indices, render_resource::PrimitiveTopology},
+    sprite::MaterialMesh2dBundle,
+    window::PrimaryWindow,
+};
 
-use crate::{components, resources::{Mouse, RayAssets}, MainCamera, RayDirection, Wall};
+use crate::{
+    components,
+    resources::{Mouse, NumberOfRays, RayAssets, RayRotation},
+    MainCamera, RayDirection, Wall,
+};
 use components::Ray;
 
 pub fn setup(
@@ -34,10 +43,10 @@ pub fn setup(
 pub fn draw_walls(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<ColorMaterial>>
+    mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
     let mut mesh = Mesh::new(PrimitiveTopology::LineList);
-    let line_one = vec![[0.0, -200.0, 0.0],[0.0, 200.0, 0.0]];
+    let line_one = vec![[0.0, -200.0, 0.0], [0.0, 200.0, 0.0]];
     mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, line_one.clone());
     let indices: Vec<u32> = vec![0, 1];
     mesh.set_indices(Some(Indices::U32(indices)));
@@ -46,13 +55,13 @@ pub fn draw_walls(
         MaterialMesh2dBundle {
             mesh: meshes.add(mesh).into(),
             material: materials.add(ColorMaterial::from(Color::YELLOW)),
-            transform: Transform::from_translation(Vec3::new(0.0, 0.0,0.0)),
+            transform: Transform::from_translation(Vec3::new(0.0, 0.0, 0.0)),
             ..default()
         },
         Wall {
             point_a: line_one[0].into(),
-            point_b: line_one[1].into() 
-        }
+            point_b: line_one[1].into(),
+        },
     ));
 }
 
@@ -60,76 +69,89 @@ pub fn draw_rays(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
-    my_cursor: ResMut<Mouse>,
-    ray_assets: ResMut<RayAssets>
+    number_of_rays: ResMut<NumberOfRays>,
 ) {
-
     let mut mesh = Mesh::new(PrimitiveTopology::LineList);
-    let ray_start = vec![[0.0, 0.0, 0.0],[0.0, 0.0, 0.0]];
+    let ray_start = vec![[0.0, 0.0, 0.0], [0.0, 0.0, 0.0]];
     mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, ray_start);
     let indices: Vec<u32> = vec![0, 1];
     mesh.set_indices(Some(Indices::U32(indices)));
-    // let x_offset = 20. / 2.0 + my_cursor.loc.x;
-    commands.spawn((
-        MaterialMesh2dBundle {
-            mesh: meshes.add(mesh).into(),
-            material: materials.add(ColorMaterial::from(Color::WHITE)),
-            transform: Transform::from_translation(Vec3::new(0.0, 0.0, 0.0)),
-            ..default()
-        },
-        Ray {},
-        RayDirection{
-            direction_x: 1.0,
-            direction_y: 0.0
-        }
-    ));
+
+    let ray_increment = 360 / number_of_rays.num;
+    println!("Ray_increment: {:?}", ray_increment);
+
+    for angle in (0..360).step_by(ray_increment.try_into().unwrap()) {
+        println!("Ray angle: {:?}", angle);
+        println!("Ray direction: {:?}", Vec2::from_angle(angle as f32));
+        commands.spawn((
+            MaterialMesh2dBundle {
+                mesh: meshes.add(mesh.clone()).into(),
+                material: materials.add(ColorMaterial::from(Color::WHITE)),
+                // transform: Transform::from_translation(Vec3::new(0.0, 0.0, 0.0)),
+                ..default()
+            },
+            Ray {
+                point_a: Vec3::new(0.0, 0.0, 0.0),
+                point_b: Vec3::new(0.0, 0.0, 0.0),
+                ray_direction: Vec2::from_angle(angle as f32),
+            },
+            RayDirection {
+                direction_x: 1.0,
+                direction_y: 0.0,
+            },
+        ));
+    }
 }
 
 pub fn ray_intersect_update(
     mut commands: Commands,
-    mut ray_query: Query<(&mut Transform, Entity, &mut RayDirection), With<Ray>>,
+    mut ray_query: Query<(&mut Ray, &mut Transform, Entity), With<Ray>>,
     mut wall_query: Query<&mut Wall, Without<Ray>>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
     my_cursor: ResMut<Mouse>,
     window_query: Query<&Window, With<PrimaryWindow>>,
-    ) {
-    let (ray_transform, ray_entity, ray_direction) = ray_query.get_single_mut().unwrap();
+) {
+    // let (ray_transform, ray_entity, ray_direction) = ray_query.get_single_mut().unwrap();
     let window = window_query.get_single().unwrap();
 
-    for wall in wall_query.iter_mut() {
-        let wall_vec1 = wall.point_a;
-        let wall_vec2 = wall.point_b;
-        let intersect_point = calc_intersect(wall_vec1, wall_vec2, &my_cursor, &ray_direction);
-        let ray_coord: Vec3;
-        let mut mesh = Mesh::new(PrimitiveTopology::LineList);
-        let indices: Vec<u32> = vec![0, 1];
-        mesh.set_indices(Some(Indices::U32(indices)));
-        
-        if intersect_point != None {
-            let intersect_vec = intersect_point.unwrap();
-            ray_coord = Vec3::new(my_cursor.loc.x, my_cursor.loc.y, 0.0);
-            let ray_start = vec![[my_cursor.loc.x, my_cursor.loc.y, 0.0],[intersect_vec.x, my_cursor.loc.y, 0.0]];
-            println!("intersect_vec: {:?}, ray_coord: {:?}, ray_start: {:?}", intersect_vec, ray_coord, ray_start);
-            mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, ray_start);
-            commands.entity(ray_entity).insert(MaterialMesh2dBundle {
-                mesh: meshes.add(mesh).into(),
-                material: materials.add(ColorMaterial::from(Color::WHITE)),
-                ..default()
-            });
+    for (ray, ray_transform, ray_entity) in ray_query.iter_mut() {
+        let ray_direction = ray.ray_direction;
+        // println!("Ray direction: {:?}", ray_direction);
+        for wall in wall_query.iter_mut() {
+            let wall_vec1 = wall.point_a;
+            let wall_vec2 = wall.point_b;
+            let intersect_point = calc_intersect(wall_vec1, wall_vec2, &my_cursor, ray_direction);
+            let mut mesh = Mesh::new(PrimitiveTopology::LineList);
+            let indices: Vec<u32> = vec![0, 1];
+            mesh.set_indices(Some(Indices::U32(indices)));
+
+            if intersect_point != None {
+                let intersect_vec = intersect_point.unwrap();
+                let ray_start = vec![
+                    [my_cursor.loc.x, my_cursor.loc.y, 0.0],
+                    [intersect_vec.x, intersect_vec.y, 0.0],
+                ];
+                mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, ray_start);
+                commands.entity(ray_entity).insert(MaterialMesh2dBundle {
+                    mesh: meshes.add(mesh).into(),
+                    material: materials.add(ColorMaterial::from(Color::WHITE)),
+                    ..default()
+                });
+            } else {
+                let ray_start = vec![
+                    [my_cursor.loc.x, my_cursor.loc.y, 0.0],
+                    [window.width(), my_cursor.loc.y, 0.0],
+                ];
+                mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, ray_start);
+                commands.entity(ray_entity).insert(MaterialMesh2dBundle {
+                    mesh: meshes.add(mesh).into(),
+                    material: materials.add(ColorMaterial::from(Color::WHITE)),
+                    ..default()
+                });
+            }
         }
-        else {
-            ray_coord = Vec3::new(my_cursor.loc.x, my_cursor.loc.y, 0.0);
-            let ray_start = vec![[my_cursor.loc.x, my_cursor.loc.y, 0.0],[window.width(), my_cursor.loc.y, 0.0]];
-            mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, ray_start);
-            commands.entity(ray_entity).insert(MaterialMesh2dBundle {
-                mesh: meshes.add(mesh).into(),
-                material: materials.add(ColorMaterial::from(Color::WHITE)),
-                ..default()
-            });
-        }
-    }   
-    
+    }
 }
 
 pub fn cursor_events(
@@ -148,18 +170,23 @@ pub fn cursor_events(
     }
 }
 
-pub fn calc_intersect(point_a: Vec3, point_b: Vec3, my_cursor: &ResMut<Mouse>, ray_direction: &Mut<RayDirection>) -> Option<Vec3> {
+pub fn calc_intersect(
+    point_a: Vec3,
+    point_b: Vec3,
+    my_cursor: &ResMut<Mouse>,
+    ray_direction: Vec2,
+) -> Option<Vec3> {
     let mut intersect_vec = Vec3::ZERO;
-    println!("point_a : {:?}, point_b: {:?}", point_a, point_b);
+    // println!("point_a : {:?}, point_b: {:?}", point_a, point_b);
     let x1 = point_a.x;
     let y1 = point_a.y;
     let x2 = point_b.x;
-    let y2 = point_b.y; 
+    let y2 = point_b.y;
 
     let x3 = my_cursor.loc.x;
     let y3 = my_cursor.loc.y;
-    let x4 = my_cursor.loc.x + ray_direction.direction_x;
-    let y4 = my_cursor.loc.y + ray_direction.direction_y;
+    let x4 = my_cursor.loc.x + ray_direction.x;
+    let y4 = my_cursor.loc.y + ray_direction.y;
 
     let den = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
     if den == 0.0 {
@@ -173,11 +200,9 @@ pub fn calc_intersect(point_a: Vec3, point_b: Vec3, my_cursor: &ResMut<Mouse>, r
         intersect_vec.x = x1 + t * (x2 - x1);
         intersect_vec.y = y1 + t * (y2 - y1);
         return Some(intersect_vec);
-    }
-    else {
+    } else {
         None
     }
-    
 }
 
 //This idea will be used for different facing vectors

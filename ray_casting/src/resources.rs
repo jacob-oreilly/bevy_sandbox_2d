@@ -16,3 +16,29 @@ pub struct RayAssets {
     pub mesh: Handle<Mesh>,
     pub material: Handle<ColorMaterial>,
 }
+
+#[derive(Resource)]
+pub struct NumberOfRays {
+    pub num: u32
+}
+
+impl Default for NumberOfRays {
+    fn default() -> NumberOfRays {
+        NumberOfRays {
+            num: 12
+        }
+    }
+}
+
+#[derive(Resource)]
+pub struct RayRotation {
+    pub rotation: f32
+}
+
+impl Default for RayRotation {
+    fn default() -> RayRotation {
+        RayRotation {
+            rotation: 16.0
+        }
+    }
+}

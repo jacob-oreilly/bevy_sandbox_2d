@@ -3,7 +3,7 @@ use bevy::prelude::*;
 
 mod systems;
 use components::*;
-use resources::{Mouse, RayAssets};
+use resources::{Mouse, NumberOfRays, RayAssets};
 use systems::*;
 pub mod components;
 pub mod resources;
@@ -15,5 +15,6 @@ fn main() {
         .add_systems(Update, (cursor_events, ray_intersect_update))
         .insert_resource(Mouse::default())
         .insert_resource(RayAssets::default())
+        .insert_resource(NumberOfRays::default())
         .run();
 }
