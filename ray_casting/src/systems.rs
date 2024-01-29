@@ -1,3 +1,5 @@
+use std::vec;
+
 use bevy::{
     prelude::*,
     render::{mesh::Indices, render_resource::PrimitiveTopology},
@@ -7,62 +9,56 @@ use bevy::{
 
 use crate::{
     components,
-    resources::{Mouse, NumberOfRays, RayAssets, RayRotation},
+    resources::{Mouse, NumberOfRays},
     MainCamera, RayDirection, Wall,
 };
 use components::Ray;
 
 pub fn setup(
     mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<ColorMaterial>>,
     mut my_cursor: ResMut<Mouse>,
 ) {
     commands.spawn((Camera2dBundle::default(), MainCamera));
     my_cursor.loc = Vec2::new(0.0, 0.0);
-
-    let box_v1 = Vec3::new(0.0, 150.0, 0.0);
-    let box_v2 = Vec3::new(2.0, -150.0, 0.0);
-    let translation_vec = Vec3::new(0.0, 20.0, 0.);
-    //Wall
-    // commands.spawn((
-    //     MaterialMesh2dBundle {
-    //         mesh: bevy::sprite::Mesh2dHandle(meshes.add(shape::Box::from_corners(box_v1, box_v2).into())),
-    //         material: materials.add(ColorMaterial::from(Color::LIME_GREEN)),
-    //         transform: Transform::from_translation(translation_vec),
-    //         ..default()
-    //     },
-    //     Wall {
-    //         point_a: box_v1,
-    //         point_b: box_v2,
-    //     },
-    // ));
 }
 
-//eventually will handle multiple walls
 pub fn draw_walls(
+    window_query: Query<&Window, With<PrimaryWindow>>,
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
-    let mut mesh = Mesh::new(PrimitiveTopology::LineList);
-    let line_one = vec![[0.0, -200.0, 0.0], [0.0, 200.0, 0.0]];
-    mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, line_one.clone());
-    let indices: Vec<u32> = vec![0, 1];
-    mesh.set_indices(Some(Indices::U32(indices)));
+    let window = window_query.get_single().unwrap();
+    let mut walls: Vec<Vec<[f32; 3]>> = Vec::new();
+    let left_border = vec![[-(window.width() / 2.0),window.height() / 2.0,0.0],[-(window.width() / 2.0),-window.height() / 2.0,0.0]];
+    let right_border = vec![[window.width()/ 2.0,window.height() / 2.0,0.0],[window.width() / 2.0,-window.height() / 2.0,0.0]];
+    let top_border = vec![[-(window.width() / 2.0),window.height() / 2.0,0.0],[window.width(),window.height() / 2.0,0.0]];
+    let bottom_border = vec![[-(window.width() / 2.0),-window.height() / 2.0,0.0],[window.width(),-window.height() / 2.0,0.0]];
+    let center_wall = vec![[-40.0, 200.0, 0.0],[40.0, -200.0, 0.0]];
+    walls.push(left_border);
+    walls.push(right_border);
+    walls.push(top_border);
+    walls.push(bottom_border);
+    walls.push(center_wall);
 
-    commands.spawn((
-        MaterialMesh2dBundle {
-            mesh: meshes.add(mesh).into(),
-            material: materials.add(ColorMaterial::from(Color::YELLOW)),
-            transform: Transform::from_translation(Vec3::new(0.0, 0.0, 0.0)),
-            ..default()
-        },
-        Wall {
-            point_a: line_one[0].into(),
-            point_b: line_one[1].into(),
-        },
-    ));
+    for wall in walls {
+        let mut mesh = Mesh::new(PrimitiveTopology::LineList);
+        mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, wall.clone());
+        let indices: Vec<u32> = vec![0, 1];
+        mesh.set_indices(Some(Indices::U32(indices)));
+
+        commands.spawn((
+            MaterialMesh2dBundle {
+                mesh: meshes.add(mesh).into(),
+                material: materials.add(ColorMaterial::from(Color::YELLOW)),
+                ..default()
+            },
+            Wall {
+                point_a: wall[0].into(),
+                point_b: wall[1].into(),
+            },
+        ));
+    }
 }
 
 pub fn draw_rays(
@@ -87,7 +83,6 @@ pub fn draw_rays(
             MaterialMesh2dBundle {
                 mesh: meshes.add(mesh.clone()).into(),
                 material: materials.add(ColorMaterial::from(Color::WHITE)),
-                // transform: Transform::from_translation(Vec3::new(0.0, 0.0, 0.0)),
                 ..default()
             },
             Ray {
@@ -105,17 +100,14 @@ pub fn draw_rays(
 
 pub fn ray_intersect_update(
     mut commands: Commands,
-    mut ray_query: Query<(&mut Ray, &mut Transform, Entity), With<Ray>>,
+    mut ray_query: Query<(&mut Ray, Entity), With<Ray>>,
     mut wall_query: Query<&mut Wall, Without<Ray>>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
     my_cursor: ResMut<Mouse>,
-    window_query: Query<&Window, With<PrimaryWindow>>,
 ) {
-    // let (ray_transform, ray_entity, ray_direction) = ray_query.get_single_mut().unwrap();
-    let window = window_query.get_single().unwrap();
 
-    for (ray, ray_transform, ray_entity) in ray_query.iter_mut() {
+    for (ray, ray_entity) in ray_query.iter_mut() {
         let ray_direction = ray.ray_direction;
         // println!("Ray direction: {:?}", ray_direction);
         for wall in wall_query.iter_mut() {
@@ -131,17 +123,6 @@ pub fn ray_intersect_update(
                 let ray_start = vec![
                     [my_cursor.loc.x, my_cursor.loc.y, 0.0],
                     [intersect_vec.x, intersect_vec.y, 0.0],
-                ];
-                mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, ray_start);
-                commands.entity(ray_entity).insert(MaterialMesh2dBundle {
-                    mesh: meshes.add(mesh).into(),
-                    material: materials.add(ColorMaterial::from(Color::WHITE)),
-                    ..default()
-                });
-            } else {
-                let ray_start = vec![
-                    [my_cursor.loc.x, my_cursor.loc.y, 0.0],
-                    [window.width(), my_cursor.loc.y, 0.0],
                 ];
                 mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, ray_start);
                 commands.entity(ray_entity).insert(MaterialMesh2dBundle {
@@ -204,7 +185,3 @@ pub fn calc_intersect(
         None
     }
 }
-
-//This idea will be used for different facing vectors
-// ray_direction.direction_x = wall_vec1.x - my_cursor.loc.x;
-// ray_direction.direction_y = wall_vec1.y - my_cursor.loc.y;
