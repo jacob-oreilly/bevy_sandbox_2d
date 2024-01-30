@@ -106,6 +106,10 @@ pub fn ray_intersect_update(
     mut materials: ResMut<Assets<ColorMaterial>>,
     my_cursor: ResMut<Mouse>,
 ) {
+    let mut mesh = Mesh::new(PrimitiveTopology::LineList);
+    let indices: Vec<u32> = vec![0, 1];
+    mesh.set_indices(Some(Indices::U32(indices)));
+    
     for (ray, ray_entity) in ray_query.iter_mut() {
         let ray_direction = ray.ray_direction;
         // println!("Ray direction: {:?}", ray_direction);
@@ -113,10 +117,6 @@ pub fn ray_intersect_update(
             let wall_vec1 = wall.point_a;
             let wall_vec2 = wall.point_b;
             let intersect_point = calc_intersect(wall_vec1, wall_vec2, &my_cursor, ray_direction);
-            let mut mesh = Mesh::new(PrimitiveTopology::LineList);
-            let indices: Vec<u32> = vec![0, 1];
-            mesh.set_indices(Some(Indices::U32(indices)));
-
             if intersect_point != None {
                 let intersect_vec = intersect_point.unwrap();
                 let ray_start = vec![
@@ -125,7 +125,7 @@ pub fn ray_intersect_update(
                 ];
                 mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, ray_start);
                 commands.entity(ray_entity).insert(MaterialMesh2dBundle {
-                    mesh: meshes.add(mesh).into(),
+                    mesh: meshes.add(mesh.clone()).into(),
                     material: materials.add(ColorMaterial::from(Color::WHITE)),
                     ..default()
                 });
