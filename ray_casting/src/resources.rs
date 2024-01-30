@@ -25,7 +25,7 @@ pub struct NumberOfRays {
 impl Default for NumberOfRays {
     fn default() -> NumberOfRays {
         NumberOfRays {
-            num: 30
+            num: 180
         }
     }
 }

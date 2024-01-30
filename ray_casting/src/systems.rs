@@ -78,7 +78,7 @@ pub fn draw_rays(
 
     for angle in (0..360).step_by(ray_increment.try_into().unwrap()) {
         println!("Ray angle: {:?}", angle);
-        println!("Ray direction: {:?}", Vec2::from_angle(angle as f32));
+        println!("Ray direction: {:?}", Vec2::from_angle((angle as f32).to_radians()));
         commands.spawn((
             MaterialMesh2dBundle {
                 mesh: meshes.add(mesh.clone()).into(),
@@ -88,7 +88,7 @@ pub fn draw_rays(
             Ray {
                 point_a: Vec3::new(0.0, 0.0, 0.0),
                 point_b: Vec3::new(0.0, 0.0, 0.0),
-                ray_direction: Vec2::from_angle(angle as f32),
+                ray_direction: Vec2::from_angle((angle as f32).to_radians()),
             },
             RayDirection {
                 direction_x: 1.0,
@@ -106,7 +106,6 @@ pub fn ray_intersect_update(
     mut materials: ResMut<Assets<ColorMaterial>>,
     my_cursor: ResMut<Mouse>,
 ) {
-
     for (ray, ray_entity) in ray_query.iter_mut() {
         let ray_direction = ray.ray_direction;
         // println!("Ray direction: {:?}", ray_direction);
