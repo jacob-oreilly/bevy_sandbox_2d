@@ -15,9 +15,3 @@ pub struct Wall {
 
 #[derive(Component)]
 pub struct MainCamera;
-
-#[derive(Component)]
-pub struct RayDirection {
-    pub direction_x: f32,
-    pub direction_y: f32
-}

@@ -10,7 +10,7 @@ use bevy::{
 use crate::{
     components,
     resources::{Mouse, NumberOfRays},
-    MainCamera, RayDirection, Wall,
+    MainCamera, Wall,
 };
 use components::Ray;
 
@@ -89,10 +89,6 @@ pub fn draw_rays(
                 point_a: Vec3::new(0.0, 0.0, 0.0),
                 point_b: Vec3::new(0.0, 0.0, 0.0),
                 ray_direction: Vec2::from_angle((angle as f32).to_radians()),
-            },
-            RayDirection {
-                direction_x: 1.0,
-                direction_y: 0.0,
             },
         ));
     }
