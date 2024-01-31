@@ -129,15 +129,13 @@ pub fn ray_intersect_update(
         // println!("Ray direction: {:?}", ray_direction);
         let mut closest_point: Vec3 = Vec3::NAN;
         let mut smallest_dist = f32::INFINITY;
-        let mut intersect_vec: Vec3 = Vec3::NAN;
         for wall in wall_query.iter_mut() {
             let wall_vec1 = wall.point_a;
             let wall_vec2 = wall.point_b;
             let intersect_point = calc_intersect(wall_vec1, wall_vec2, &my_cursor, ray_direction);
             if intersect_point != None {
-                intersect_vec = intersect_point.unwrap();
                 let temp_cursor_vector = Vec3::new(my_cursor.loc.x, my_cursor.loc.y, 0.0);
-                let distance = temp_cursor_vector.distance(intersect_vec);
+                let distance = temp_cursor_vector.distance(intersect_point.unwrap());
                 if distance < smallest_dist {
                     smallest_dist = distance;
                     closest_point = intersect_point.unwrap();
@@ -147,7 +145,7 @@ pub fn ray_intersect_update(
         if closest_point != Vec3::NAN {
             let ray_start = vec![
                 [my_cursor.loc.x, my_cursor.loc.y, 0.0],
-                [intersect_vec.x, intersect_vec.y, 0.0],
+                [closest_point.x, closest_point.y, 0.0],
             ];
             mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, ray_start);
             commands.entity(ray_entity).insert(MaterialMesh2dBundle {
