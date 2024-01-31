@@ -14,10 +14,7 @@ use crate::{
 };
 use components::Ray;
 
-pub fn setup(
-    mut commands: Commands,
-    mut my_cursor: ResMut<Mouse>,
-) {
+pub fn setup(mut commands: Commands, mut my_cursor: ResMut<Mouse>) {
     commands.spawn((Camera2dBundle::default(), MainCamera));
     my_cursor.loc = Vec2::new(0.0, 0.0);
 }
@@ -30,16 +27,34 @@ pub fn draw_walls(
 ) {
     let window = window_query.get_single().unwrap();
     let mut walls: Vec<Vec<[f32; 3]>> = Vec::new();
-    let left_border = vec![[-(window.width() / 2.0),window.height() / 2.0,0.0],[-(window.width() / 2.0),-window.height() / 2.0,0.0]];
-    let right_border = vec![[window.width()/ 2.0,window.height() / 2.0,0.0],[window.width() / 2.0,-window.height() / 2.0,0.0]];
-    let top_border = vec![[-(window.width() / 2.0),window.height() / 2.0,0.0],[window.width(),window.height() / 2.0,0.0]];
-    let bottom_border = vec![[-(window.width() / 2.0),-window.height() / 2.0,0.0],[window.width(),-window.height() / 2.0,0.0]];
-    let center_wall = vec![[-40.0, 200.0, 0.0],[40.0, -200.0, 0.0]];
+    let left_border = vec![
+        [-(window.width() / 2.0), window.height() / 2.0, 0.0],
+        [-(window.width() / 2.0), -window.height() / 2.0, 0.0],
+    ];
+    let right_border = vec![
+        [window.width() / 2.0, window.height() / 2.0, 0.0],
+        [window.width() / 2.0, -window.height() / 2.0, 0.0],
+    ];
+    let top_border = vec![
+        [-(window.width() / 2.0), window.height() / 2.0, 0.0],
+        [window.width(), window.height() / 2.0, 0.0],
+    ];
+    let bottom_border = vec![
+        [-(window.width() / 2.0), -window.height() / 2.0, 0.0],
+        [window.width(), -window.height() / 2.0, 0.0],
+    ];
+    let center_wall = vec![[-40.0, 200.0, 0.0], [40.0, -200.0, 0.0]];
+    let normal_wall_1 = vec![[-90.0, 200.0, 0.0], [100.0, 200.0, 0.0]];
+    let normal_wall_2 = vec![[-20.0, 200.0, 0.0], [60.0, -200.0, 0.0]];
+    let normal_wall_3 = vec![[100.0, 200.0, 0.0], [40.0, -400.0, 0.0]];
     walls.push(left_border);
     walls.push(right_border);
     walls.push(top_border);
     walls.push(bottom_border);
     walls.push(center_wall);
+    walls.push(normal_wall_1);
+    walls.push(normal_wall_2);
+    walls.push(normal_wall_3);
 
     for wall in walls {
         let mut mesh = Mesh::new(PrimitiveTopology::LineList);
@@ -78,7 +93,10 @@ pub fn draw_rays(
 
     for angle in (0..360).step_by(ray_increment.try_into().unwrap()) {
         println!("Ray angle: {:?}", angle);
-        println!("Ray direction: {:?}", Vec2::from_angle((angle as f32).to_radians()));
+        println!(
+            "Ray direction: {:?}",
+            Vec2::from_angle((angle as f32).to_radians())
+        );
         commands.spawn((
             MaterialMesh2dBundle {
                 mesh: meshes.add(mesh.clone()).into(),
@@ -105,28 +123,40 @@ pub fn ray_intersect_update(
     let mut mesh = Mesh::new(PrimitiveTopology::LineList);
     let indices: Vec<u32> = vec![0, 1];
     mesh.set_indices(Some(Indices::U32(indices)));
-    
+
     for (ray, ray_entity) in ray_query.iter_mut() {
         let ray_direction = ray.ray_direction;
         // println!("Ray direction: {:?}", ray_direction);
+        let mut closest_point: Vec3 = Vec3::NAN;
+        let mut smallest_dist = f32::INFINITY;
+        let mut intersect_vec: Vec3 = Vec3::NAN;
         for wall in wall_query.iter_mut() {
             let wall_vec1 = wall.point_a;
             let wall_vec2 = wall.point_b;
             let intersect_point = calc_intersect(wall_vec1, wall_vec2, &my_cursor, ray_direction);
             if intersect_point != None {
-                let intersect_vec = intersect_point.unwrap();
-                let ray_start = vec![
-                    [my_cursor.loc.x, my_cursor.loc.y, 0.0],
-                    [intersect_vec.x, intersect_vec.y, 0.0],
-                ];
-                mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, ray_start);
-                commands.entity(ray_entity).insert(MaterialMesh2dBundle {
-                    mesh: meshes.add(mesh.clone()).into(),
-                    material: materials.add(ColorMaterial::from(Color::WHITE)),
-                    ..default()
-                });
+                intersect_vec = intersect_point.unwrap();
+                let temp_cursor_vector = Vec3::new(my_cursor.loc.x, my_cursor.loc.y, 0.0);
+                let distance = temp_cursor_vector.distance(intersect_vec);
+                if distance < smallest_dist {
+                    smallest_dist = distance;
+                    closest_point = intersect_point.unwrap();
+                }
             }
         }
+        if closest_point != Vec3::NAN {
+            let ray_start = vec![
+                [my_cursor.loc.x, my_cursor.loc.y, 0.0],
+                [intersect_vec.x, intersect_vec.y, 0.0],
+            ];
+            mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, ray_start);
+            commands.entity(ray_entity).insert(MaterialMesh2dBundle {
+                mesh: meshes.add(mesh.clone()).into(),
+                material: materials.add(ColorMaterial::from(Color::WHITE)),
+                ..default()
+            });
+        }
+        
     }
 }
 
