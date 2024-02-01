@@ -100,7 +100,7 @@ pub fn draw_rays(
         commands.spawn((
             MaterialMesh2dBundle {
                 mesh: meshes.add(mesh.clone()).into(),
-                material: materials.add(ColorMaterial::from(Color::WHITE)),
+                material: materials.add(ColorMaterial::from(Color::rgba(1.0, 1.0, 1.0, 0.5))),
                 ..default()
             },
             Ray {
@@ -150,7 +150,7 @@ pub fn ray_intersect_update(
             mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, ray_start);
             commands.entity(ray_entity).insert(MaterialMesh2dBundle {
                 mesh: meshes.add(mesh.clone()).into(),
-                material: materials.add(ColorMaterial::from(Color::WHITE)),
+                material: materials.add(ColorMaterial::from(Color::rgba_linear(1.0, 1.0, 1.0, 0.1))),
                 ..default()
             });
         }
