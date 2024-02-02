@@ -1,6 +1,6 @@
 use bevy::{prelude::*, sprite::MaterialMesh2dBundle, window::PrimaryWindow};
 
-use crate::components::{self, PlayerBundle, Tourch};
+use crate::components::{self, Tourch};
 use components::Player;
 
 pub fn setup(mut commands: Commands, window_query: Query<&Window, With<PrimaryWindow>>) {
@@ -31,21 +31,8 @@ pub fn spawn_player(
             movement_speed: 500.0,
             rotation_speed: f32::to_radians(360.0)
         },
-    ));
+        Tourch {
 
-    commands.spawn((
-        PlayerBundle {
-            player: Player {
-                movement_speed: 500.0,
-                rotation_speed: f32::to_radians(360.0)
-            },
-            tourch: Tourch{},
-        },
-        MaterialMesh2dBundle {
-            mesh: meshes.add(shape::Circle::new(10.0).into()).into(),
-            material: materials.add(ColorMaterial::from(Color::ALICE_BLUE)),
-            transform: Transform::from_xyz(window.width() / 2.0, window.height() / 2.0, 0.0),
-            ..default()
         }
     ));
 }
