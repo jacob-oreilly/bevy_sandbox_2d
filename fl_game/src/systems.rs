@@ -1,4 +1,6 @@
-use bevy::{prelude::*, sprite::MaterialMesh2dBundle, window::PrimaryWindow};
+use std::process::CommandArgs;
+
+use bevy::{prelude::*, render::{mesh::Indices, render_resource::PrimitiveTopology}, sprite::MaterialMesh2dBundle, window::PrimaryWindow};
 
 use crate::components::{self, Tourch};
 use components::Player;
@@ -30,11 +32,34 @@ pub fn spawn_player(
         Player {
             movement_speed: 500.0,
             rotation_speed: f32::to_radians(360.0)
-        },
-        Tourch {
-
         }
     ));
+}
+
+pub fn spawn_tourch(
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
+    mut player_query: Query<(&mut Transform, &Player, Entity),With<Player>>,
+) {
+    if let Ok((transform, player, player_entity)) = player_query.get_single_mut() {
+        let mut mesh = Mesh::new(PrimitiveTopology::TriangleList);
+        let tourch_points = vec![[0.0, 0.0, 0.0], [7.0, 4.0, 0.0], [7.0, -4.0, 0.0]];
+        mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, vec![[0., 1., 0.]; 3]);
+        mesh.insert_attribute(Mesh::ATTRIBUTE_UV_0, vec![[0., 0.]; 3]);
+        mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, tourch_points);
+        let indices: Vec<u32> = vec![0, 2, 1];
+        mesh.set_indices(Some(Indices::U32(indices)));
+        let tourch = commands.spawn((
+            MaterialMesh2dBundle {
+                mesh: meshes.add(mesh).into(),
+                material: materials.add(ColorMaterial::from(Color::rgba(1.0, 1.0, 1.0, 0.5))),
+                ..default()
+            },
+            Tourch{},
+        )).id();
+        commands.entity(player_entity).push_children(&[tourch]);
+    }
 }
 
 pub fn player_movement(
@@ -64,4 +89,12 @@ pub fn player_movement(
 
         transform.translation += direction * player.movement_speed * time.delta_seconds();
     }
+}
+
+pub fn spawn_walls(
+    commands: Commands,
+    meshes: ResMut<Assets<Mesh>>,
+    materials: ResMut<Assets<ColorMaterial>>
+) {
+
 }
