@@ -1,11 +1,12 @@
 use bevy::prelude::*;
-use systems::*;
 
 mod systems;
-
+use systems::*;
+pub mod components;
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
         .add_systems(Startup, (setup, spawn_player))
+        .add_systems(Update, player_movement)
         .run()
 }
