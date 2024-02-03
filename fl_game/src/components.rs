@@ -9,6 +9,7 @@ pub struct PlayerBundle {
 pub struct Player {
     pub movement_speed: f32,
     pub rotation_speed: f32,
+    pub player_rotation: f32,
 }
 
 #[derive(Component)]

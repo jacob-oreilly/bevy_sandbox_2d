@@ -31,7 +31,8 @@ pub fn spawn_player(
         },
         Player {
             movement_speed: 500.0,
-            rotation_speed: f32::to_radians(360.0)
+            rotation_speed: f32::to_radians(360.0),
+            player_rotation: f32::to_radians(0.0),
         }
     )).with_children(|parent| {
         parent.spawn((
@@ -46,58 +47,43 @@ pub fn spawn_player(
     });
 }
 
-pub fn spawn_tourch(
-    mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
-    mut player_query: Query<(&mut Transform, &Player, Entity),With<Player>>,
-    window_query: Query<&Window, With<PrimaryWindow>>
-) {
-
-    let window = window_query.get_single().unwrap();
-    let center_x = window.width() / 2.0;
-    let center_y = window.height() / 2.0;
-    if let Ok((transform, player, player_entity)) = player_query.get_single_mut() {
-        let tourch = commands.spawn((
-            PbrBundle {
-                mesh: meshes.add(shape::Quad::new(Vec2::new(10.0, 5.0)).into()).into(),
-                material: materials.add(Color::RED.into()),
-                ..default()
-            },
-            Tourch{},
-        )).id();
-        commands.entity(player_entity).push_children(&[tourch]);
-    }
-}
-
 pub fn player_movement(
     mut commands: Commands,
     keys: Res<Input<KeyCode>>,
-    mut player_query: Query<(&mut Transform, &Player),With<Player>>,
+    mut player_query: Query<(&mut Transform, &mut Player),With<Player>>,
     time: Res<Time>
 ) {
 
-    if let Ok((mut transform, player)) = player_query.get_single_mut() {
+    if let Ok((mut transform,  mut player)) = player_query.get_single_mut() {
         let mut direction = Vec3::new(0.0, 0.0, 0.0);
-        let mut rotation = 0.0;
+        let mut rotation: f32 = -1.0;
         if keys.pressed(KeyCode::Left) || keys.pressed(KeyCode::A) {
             direction += Vec3::new(-1.0, 0.0, 0.0);
+            rotation = 180.0;
         }
         if keys.pressed(KeyCode::Right) || keys.pressed(KeyCode::D) {
             direction += Vec3::new(1.0, 0.0, 0.0);
+            rotation = 0.0;
         }
         if keys.pressed(KeyCode::Up) || keys.pressed(KeyCode::W) {
             direction += Vec3::new(0.0, 1.0, 0.0);
+            rotation = 90.0;
         }
         if keys.pressed(KeyCode::Down) || keys.pressed(KeyCode::S) {
             direction += Vec3::new(0.0, -1.0, 0.0);
+            rotation = -90.0;
         }
 
         if direction.length() > 0.0 {
             direction = direction.normalize();
+            transform.translation += direction * player.movement_speed * time.delta_seconds();
         }
-        transform.rotate_z(rotation * player.rotation_speed * time.delta_seconds());
-        transform.translation += direction * player.movement_speed * time.delta_seconds();
+        if rotation > -1.0 && player.player_rotation != rotation {
+            player.player_rotation = rotation;
+            transform.rotate_z(player.player_rotation.to_radians());
+        }
+        
+        
     }
 }
 
@@ -108,3 +94,28 @@ pub fn spawn_walls(
 ) {
 
 }
+
+
+// pub fn spawn_tourch(
+//     mut commands: Commands,
+//     mut meshes: ResMut<Assets<Mesh>>,
+//     mut materials: ResMut<Assets<StandardMaterial>>,
+//     mut player_query: Query<(&mut Transform, &Player, Entity),With<Player>>,
+//     window_query: Query<&Window, With<PrimaryWindow>>
+// ) {
+
+//     let window = window_query.get_single().unwrap();
+//     let center_x = window.width() / 2.0;
+//     let center_y = window.height() / 2.0;
+//     if let Ok((transform, player, player_entity)) = player_query.get_single_mut() {
+//         let tourch = commands.spawn((
+//             PbrBundle {
+//                 mesh: meshes.add(shape::Quad::new(Vec2::new(10.0, 5.0)).into()).into(),
+//                 material: materials.add(Color::RED.into()),
+//                 ..default()
+//             },
+//             Tourch{},
+//         )).id();
+//         commands.entity(player_entity).push_children(&[tourch]);
+//     }
+// }
