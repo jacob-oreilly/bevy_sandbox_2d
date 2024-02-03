@@ -20,3 +20,8 @@ pub struct Tourch {
 pub struct Wall {
 
 }
+
+#[derive(Component)]
+pub struct PlayerParent {
+
+}

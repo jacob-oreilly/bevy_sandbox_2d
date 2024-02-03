@@ -33,27 +33,35 @@ pub fn spawn_player(
             movement_speed: 500.0,
             rotation_speed: f32::to_radians(360.0)
         }
-    ));
+    )).with_children(|parent| {
+        parent.spawn((
+            MaterialMesh2dBundle {
+                mesh: meshes.add(shape::Quad::new(Vec2::new(10.0, 5.0)).into()).into(),
+                material: materials.add(Color::RED.into()),
+                transform: Transform::from_xyz(10.0, 0.0, 1.0),
+                ..default()
+            },
+            Tourch{},
+        ));
+    });
 }
 
 pub fn spawn_tourch(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<ColorMaterial>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
     mut player_query: Query<(&mut Transform, &Player, Entity),With<Player>>,
+    window_query: Query<&Window, With<PrimaryWindow>>
 ) {
+
+    let window = window_query.get_single().unwrap();
+    let center_x = window.width() / 2.0;
+    let center_y = window.height() / 2.0;
     if let Ok((transform, player, player_entity)) = player_query.get_single_mut() {
-        let mut mesh = Mesh::new(PrimitiveTopology::TriangleList);
-        let tourch_points = vec![[0.0, 0.0, 0.0], [7.0, 4.0, 0.0], [7.0, -4.0, 0.0]];
-        mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, vec![[0., 1., 0.]; 3]);
-        mesh.insert_attribute(Mesh::ATTRIBUTE_UV_0, vec![[0., 0.]; 3]);
-        mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, tourch_points);
-        let indices: Vec<u32> = vec![0, 2, 1];
-        mesh.set_indices(Some(Indices::U32(indices)));
         let tourch = commands.spawn((
-            MaterialMesh2dBundle {
-                mesh: meshes.add(mesh).into(),
-                material: materials.add(ColorMaterial::from(Color::rgba(1.0, 1.0, 1.0, 0.5))),
+            PbrBundle {
+                mesh: meshes.add(shape::Quad::new(Vec2::new(10.0, 5.0)).into()).into(),
+                material: materials.add(Color::RED.into()),
                 ..default()
             },
             Tourch{},
@@ -63,6 +71,7 @@ pub fn spawn_tourch(
 }
 
 pub fn player_movement(
+    mut commands: Commands,
     keys: Res<Input<KeyCode>>,
     mut player_query: Query<(&mut Transform, &Player),With<Player>>,
     time: Res<Time>
@@ -70,6 +79,7 @@ pub fn player_movement(
 
     if let Ok((mut transform, player)) = player_query.get_single_mut() {
         let mut direction = Vec3::new(0.0, 0.0, 0.0);
+        let mut rotation = 0.0;
         if keys.pressed(KeyCode::Left) || keys.pressed(KeyCode::A) {
             direction += Vec3::new(-1.0, 0.0, 0.0);
         }
@@ -86,7 +96,7 @@ pub fn player_movement(
         if direction.length() > 0.0 {
             direction = direction.normalize();
         }
-
+        transform.rotate_z(rotation * player.rotation_speed * time.delta_seconds());
         transform.translation += direction * player.movement_speed * time.delta_seconds();
     }
 }
