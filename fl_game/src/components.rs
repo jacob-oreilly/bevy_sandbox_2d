@@ -18,6 +18,9 @@ pub struct Tourch {
 }
 
 #[derive(Component)]
+pub struct TourchLight {}
+
+#[derive(Component)]
 pub struct Wall {
 
 }
