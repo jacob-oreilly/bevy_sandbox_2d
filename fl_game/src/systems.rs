@@ -1,6 +1,6 @@
-use std::vec;
+use std::{f32::consts::{FRAC_PI_2, PI}, vec};
 
-use bevy::{prelude::*, render::{mesh::Indices, render_resource::PrimitiveTopology}, sprite::MaterialMesh2dBundle, window::PrimaryWindow};
+use bevy::{prelude::*, render::{mesh::Indices, render_resource::PrimitiveTopology}, sprite::MaterialMesh2dBundle, transform, window::PrimaryWindow};
 
 use crate::components::{self, Tourch, TourchLight, Wall};
 use components::Player;
@@ -44,16 +44,24 @@ pub fn spawn_player(
             },
             Tourch{},
         ));
-        parent.spawn((
-            MaterialMesh2dBundle {
-                mesh: bevy::sprite::Mesh2dHandle(meshes.add(generate_line_mesh(Vec3::new(25.0, 0.0, 0.0), Vec3::new(window.width(), 0.0, 0.0)))),
-                material: materials.add(ColorMaterial::from(Color::rgba(1.0, 1.0, 1.0, 0.5))),
-                ..default()       
-            },
-            TourchLight {
-                ray: Ray { origin: Vec3::new(10.0, 0.0, 0.0), direction: Vec3::new(window.width(), 0.0, 0.0)}
-            }
-        ));
+        let rez = 180 / 90;
+        for i in (0 .. 180).step_by(rez) {
+            let angle = -90.0 + i as f32;
+            parent.spawn((
+                MaterialMesh2dBundle {
+                    mesh: bevy::sprite::Mesh2dHandle(meshes.add(generate_line_mesh(Vec3::new(25.0, 0.0, 0.0), Vec3::new(window.width(), angle, 0.0)))),
+                    material: materials.add(ColorMaterial::from(Color::rgba(1.0, 1.0, 1.0, 0.5))),
+                    transform: Transform::from_translation(Vec3::new(25.0, 0.0, 0.0)),
+                    ..default()       
+                },
+                TourchLight {
+                    point_a: Vec3::new(25.0, 0.0, 0.0),
+                    point_b: Vec3::new(window.width(), angle, 0.0),
+                    ray_direction: Vec2::from_angle(angle.to_radians()),
+                }
+            ));
+        }
+        
     });
 }
 
@@ -86,6 +94,8 @@ pub fn player_movement(
             let rotate_forward = Quat::from_rotation_arc(Vec3::X, to_forward.extend(0.0));
             transform.rotation = rotate_forward;
         }
+
+        println!("player: {:?}", transform.translation);
         
         
     }
@@ -115,8 +125,9 @@ pub fn spawn_walls(
 
 pub fn tourch_light_update(
     mut commands: Commands,
-    mut tourch_light_query: Query<(&mut TourchLight, Entity),With<TourchLight>>,
+    mut tourch_light_query: Query<(&mut TourchLight, Entity, &Parent, &mut Transform),With<TourchLight>>,
     mut wall_query: Query<&mut Wall, Without<TourchLight>>,
+    mut transform_query: Query<&Transform, Without<TourchLight>>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>, 
 ) {
@@ -124,18 +135,25 @@ pub fn tourch_light_update(
     let indices: Vec<u32> = vec![0, 1];
     mesh.set_indices(Some(Indices::U32(indices)));
 
-    for (tourch_light, tourch_light_entity) in tourch_light_query.iter_mut() {
+    for (tourch_light, tourch_light_entity, player, mut tourch_transform) in tourch_light_query.iter_mut() {
+        // let tourch_global_position = tourch_global_transform.translation();
+        let mut tourch_global_position = tourch_transform.translation;
+        if let Ok(transform) = transform_query.get_mut(**player) {
+            tourch_global_position = transform.translation;
+        }
+        
+        println!("Tourch global: {:?}", tourch_global_position);
         let mut closest_point: Vec3 = Vec3::NAN;
         let mut smallest_dist = f32::INFINITY;
-        println!("tourch_light_direct: {:?}",  tourch_light.ray.direction);
-        println!("tourch_light_org: {:?}",  tourch_light.ray.origin);
+        // println!("tourch_light_direct: {:?}",  tourch_light.ray_direction);
+        // println!("tourch_light_org: {:?}",  tourch_global_position);
         for wall in wall_query.iter_mut() {
             let wall_vec1 = wall.start;
             let wall_vec2 = wall.end;
-            let intersect_point = calc_intersect(wall_vec1, wall_vec2, tourch_light.ray.origin, tourch_light.ray.direction);
+            let intersect_point = calc_intersect(wall_vec1, wall_vec2, tourch_global_position, tourch_light.ray_direction);
             println!("Intersect Point: {:?}", intersect_point );
             if intersect_point != None {
-                let temp_cursor_vector = tourch_light.ray.origin;
+                let temp_cursor_vector = tourch_global_position;
                 let distance = temp_cursor_vector.distance(intersect_point.unwrap());
                 if distance < smallest_dist {
                     smallest_dist = distance;
@@ -145,13 +163,14 @@ pub fn tourch_light_update(
         }
         if closest_point != Vec3::NAN {
             let tourch_position = vec![
-                [tourch_light.ray.origin.x, tourch_light.ray.origin.y, 0.0],
+                [tourch_global_position.x, tourch_global_position.y, 0.0],
                 [closest_point.x, closest_point.y, 0.0]
             ];
             mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, tourch_position);
             commands.entity(tourch_light_entity).insert(MaterialMesh2dBundle {
                 mesh: meshes.add(mesh.clone()).into(),
                 material: materials.add(ColorMaterial::from(Color::rgba_linear(1.0, 1.0, 1.0, 0.5))),
+                transform: Transform::from_translation(Vec3::new(tourch_global_position.x, tourch_global_position.y, 0.0)),
                 ..default()
             });
         }
@@ -163,7 +182,7 @@ pub fn calc_intersect(
     point_a: Vec3,
     point_b: Vec3,
     tourch: Vec3,
-    ray_direction: Vec3,
+    ray_direction: Vec2,
 ) -> Option<Vec3> {
     let mut intersect_vec = Vec3::ZERO;
     // println!("point_a : {:?}, point_b: {:?}", point_a, point_b);
