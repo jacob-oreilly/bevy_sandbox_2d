@@ -1,5 +1,5 @@
 use std::{
-    f32::consts::{FRAC_PI_2, PI},
+    f32::{consts::{FRAC_PI_2, PI}, INFINITY},
     vec,
 };
 
@@ -65,7 +65,7 @@ pub fn spawn_player(
                     MaterialMesh2dBundle {
                         mesh: bevy::sprite::Mesh2dHandle(meshes.add(generate_line_mesh(
                             Vec3::new(0.0, 0.0, 0.0),
-                            Vec3::new(0.0, 0.0, 0.0),
+                            Vec3::new(window.width(), 0.0, 0.0),
                         ))),
                         material: materials
                             .add(ColorMaterial::from(Color::rgba(1.0, 1.0, 1.0, 0.5))),
@@ -121,12 +121,73 @@ pub fn spawn_walls(
     window_query: Query<&Window, With<PrimaryWindow>>,
 ) {
     let window = window_query.get_single().unwrap();
-    let line_start = Vec3::new(window.width() - 30.0, window.height() / 2.0, 0.0);
-    let line_end = Vec3::new(window.width() - 30.0, 0.0, 0.0);
+    let line_length = window.height();
+    let line_start = Vec3::new(0.0, 0.0, 0.0);
+    let line_end = Vec3::new(0.0, line_length, 0.0);
+    let wall_mesh = generate_line_mesh(line_start, line_end);
     commands.spawn((
         MaterialMesh2dBundle {
-            mesh: bevy::sprite::Mesh2dHandle(meshes.add(generate_line_mesh(line_start, line_end))),
+            mesh: meshes.add(wall_mesh.clone()).into(),
             material: materials.add(ColorMaterial::from(Color::rgba(1.0, 1.0, 1.0, 0.5))),
+            transform: Transform::from_xyz(window.width() / 2.0, window.height() / 4.0, 0.0).with_scale(vec3(0.0, 0.5, 0.0)),
+            ..default()
+        },
+        Wall {
+            start: line_start,
+            end: line_end,
+        },
+    ));
+
+    //right wall
+    commands.spawn((
+        MaterialMesh2dBundle {
+            mesh: meshes.add(wall_mesh.clone()).into(),
+            material: materials.add(ColorMaterial::from(Color::rgba(1.0, 1.0, 1.0, 0.5))),
+            transform: Transform::from_xyz(window.width() - 1.0, 0.0, 0.0),
+            ..default()
+        },
+        Wall {
+            start: line_start,
+            end: line_end,
+        },
+    ));
+    
+    //left wall
+    commands.spawn((
+        MaterialMesh2dBundle {
+            mesh: meshes.add(wall_mesh.clone()).into(),
+            material: materials.add(ColorMaterial::from(Color::rgba(1.0, 1.0, 1.0, 0.5))),
+            transform: Transform::from_xyz(1.0, 0.0, 0.0),
+            ..default()
+        },
+        Wall {
+            start: line_start,
+            end: line_end,
+        },
+    ));
+
+    let scale = (window.width() / line_length).abs();
+    println!("Scale: {:?}",scale);
+    //ceiling
+    commands.spawn((
+        MaterialMesh2dBundle {
+            mesh: meshes.add(wall_mesh.clone()).into(),
+            material: materials.add(ColorMaterial::from(Color::rgba(1.0, 1.0, 1.0, 1.0))),
+            transform: Transform::from_xyz(window.width(), window.height() - 1.0, 0.0).with_scale(vec3(0.0, scale, 0.0)).with_rotation(Quat::from_rotation_z((90.0_f32).to_radians())),
+            ..default()
+        },
+        Wall {
+            start: line_start,
+            end: line_end,
+        },
+    ));
+
+    //floor
+    commands.spawn((
+        MaterialMesh2dBundle {
+            mesh: meshes.add(wall_mesh.clone()).into(),
+            material: materials.add(ColorMaterial::from(Color::rgba(1.0, 1.0, 1.0, 1.0))),
+            transform: Transform::from_xyz(window.width(), 1.0, 0.0).with_scale(vec3(0.0, scale, 0.0)).with_rotation(Quat::from_rotation_z((90.0_f32).to_radians())),
             ..default()
         },
         Wall {
@@ -205,64 +266,6 @@ pub fn tourch_light_update(
     }
 }
 
-pub fn tourch_light_update_two(
-    mut commands: Commands,
-    mut tourch_light_query: Query<(&mut TourchLight, Entity), Without<Player>>,
-    mut wall_query: Query<&mut Wall>,
-    mut player_query: Query<(&Transform, &Children), With<Player>>,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<ColorMaterial>>,
-) {
-    let mut mesh = Mesh::new(PrimitiveTopology::LineList);
-    let indices: Vec<u32> = vec![0, 1];
-    mesh.set_indices(Some(Indices::U32(indices)));
-
-    for (player_transform, children) in player_query.iter_mut() {
-        for &child in children.iter() {
-            if let Ok((tourch_light, entity)) = tourch_light_query.get_mut(child) {
-                let mut tourch_global_position = player_transform.translation;
-                let mut closest_point: Vec3 = Vec3::NAN;
-                let mut smallest_dist = f32::INFINITY;
-                for wall in wall_query.iter_mut() {
-                    let wall_vec1 = wall.start;
-                    let wall_vec2 = wall.end;
-                    let intersect_point = calc_intersect(
-                        wall_vec1,
-                        wall_vec2,
-                        tourch_global_position,
-                        tourch_light.ray_direction,
-                    );
-                    // println!("Intersect Point: {:?}", intersect_point );
-                    if intersect_point != None {
-                        let temp_cursor_vector = tourch_global_position;
-                        let distance = temp_cursor_vector.distance(intersect_point.unwrap());
-                        if distance < smallest_dist {
-                            smallest_dist = distance;
-                            closest_point = intersect_point.unwrap();
-                        }
-                    }
-                }
-                if closest_point != Vec3::NAN {
-                    let tourch_position = vec![
-                        [tourch_global_position.x, tourch_global_position.y, 0.0],
-                        [closest_point.x, closest_point.y, 0.0],
-                    ];
-                    mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, tourch_position);
-                    commands
-                        .entity(entity)
-                        .insert(MaterialMesh2dBundle {
-                            mesh: meshes.add(mesh.clone()).into(),
-                            material: materials
-                                .add(ColorMaterial::from(Color::rgba_linear(1.0, 1.0, 1.0, 0.5))),
-                            transform: Transform::from_translation(Vec3::new(0.0, 0.0, 0.0)),
-                            ..default()
-                        });
-                }
-            }
-        }
-    }
-}
-
 pub fn calc_intersect(
     point_a: Vec3,
     point_b: Vec3,
@@ -305,4 +308,41 @@ pub fn generate_line_mesh(line_start: Vec3, line_end: Vec3) -> Mesh {
     let indices: Vec<u32> = vec![0, 1];
     mesh.set_indices(Some(Indices::U32(indices)));
     mesh
+}
+
+pub fn update_tourch_light_direction(
+    keys: Res<Input<KeyCode>>,
+    mut tourch_light_query: Query<(&mut Transform, &mut TourchLight), With<TourchLight>>,
+) {
+    for (mut transform, mut tourch_light) in tourch_light_query.iter_mut() {
+        let mut direction = Vec2::new(0.0, 0.0);
+        if keys.pressed(KeyCode::Left) || keys.pressed(KeyCode::A) {
+            direction += Vec2::new(-1.0, 0.0);
+        }
+        if keys.pressed(KeyCode::Right) || keys.pressed(KeyCode::D) {
+            direction += Vec2::new(1.0, 0.0);
+        }
+        if keys.pressed(KeyCode::Up) || keys.pressed(KeyCode::W) {
+            direction += Vec2::new(0.0, 1.0);
+        }
+        if keys.pressed(KeyCode::Down) || keys.pressed(KeyCode::S) {
+            direction += Vec2::new(0.0, -1.0);
+        }
+
+        if direction.length() > 0.0 {
+            direction = direction.normalize();
+            tourch_light.ray_direction += direction;
+        }
+ 
+        // if direction.length() > 0.0 {
+        //     direction = direction.normalize();
+        //     let current_direction = transform.translation.xy();
+        //     transform.translation += direction * player.movement_speed * time.delta_seconds();
+        //     let to_forward = (transform.translation.xy() - current_direction).normalize();
+        //     let rotate_forward = Quat::from_rotation_arc(Vec3::X, to_forward.extend(0.0));
+        //     transform.rotation = rotate_forward;
+        // }
+
+        // println!("player: {:?}", transform.translation);
+    }
 }
