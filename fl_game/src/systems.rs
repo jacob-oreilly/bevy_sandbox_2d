@@ -59,13 +59,13 @@ pub fn spawn_player(
                 Tourch {},
             ));
             let rez = 180 / 90;
-            for i in (0..180).step_by(rez) {
-                let angle = -90.0 + i as f32;
+            for i in (0..1) {
+                let angle = 0.0;
                 parent.spawn((
                     MaterialMesh2dBundle {
                         mesh: bevy::sprite::Mesh2dHandle(meshes.add(generate_line_mesh(
-                            Vec3::new(25.0, 0.0, 0.0),
-                            Vec3::new(window.width(), angle, 0.0),
+                            Vec3::new(0.0, 0.0, 0.0),
+                            Vec3::new(0.0, 0.0, 0.0),
                         ))),
                         material: materials
                             .add(ColorMaterial::from(Color::rgba(1.0, 1.0, 1.0, 0.5))),
@@ -151,12 +151,11 @@ pub fn tourch_light_update(
     let indices: Vec<u32> = vec![0, 1];
     mesh.set_indices(Some(Indices::U32(indices)));
 
-    for (tourch_light, tourch_light_entity, player, mut tourch_transform) in
+    for (tourch_light, tourch_light_entity, player, tourch_transform) in
         tourch_light_query.iter_mut()
     {
         // let tourch_global_position = tourch_global_transform.translation();
         let mut tourch_global_position = Vec3::ZERO;
-        println!("tourch_transform: {:?}", tourch_transform.translation);
         if let Ok(transform) = transform_query.get_mut(**player) {
             tourch_global_position = transform.translation;
             println!("Inside Player: {:?}", transform.translation);
@@ -176,8 +175,9 @@ pub fn tourch_light_update(
                 tourch_global_position,
                 tourch_light.ray_direction,
             );
-            // println!("Intersect Point: {:?}", intersect_point );
+            
             if intersect_point != None {
+                println!("Intersect Point: {:?}", intersect_point );
                 let temp_cursor_vector = tourch_global_position;
                 let distance = temp_cursor_vector.distance(intersect_point.unwrap());
                 if distance < smallest_dist {
@@ -188,9 +188,10 @@ pub fn tourch_light_update(
         }
         if closest_point != Vec3::NAN {
             let tourch_position = vec![
-                [tourch_global_position.x, tourch_global_position.y, 0.0],
+                [0.0, 0.0, 0.0],
                 [closest_point.x, closest_point.y, 0.0],
             ];
+            println!("tourch position: {:?}", tourch_position );
             mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, tourch_position);
             commands
                 .entity(tourch_light_entity)
@@ -198,7 +199,6 @@ pub fn tourch_light_update(
                     mesh: meshes.add(mesh.clone()).into(),
                     material: materials
                         .add(ColorMaterial::from(Color::rgba_linear(1.0, 1.0, 1.0, 0.5))),
-                    transform: Transform::from_translation(Vec3::new(0.0, 0.0, 0.0)),
                     ..default()
                 });
         }
