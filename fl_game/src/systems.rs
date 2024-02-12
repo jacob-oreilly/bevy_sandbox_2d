@@ -208,11 +208,13 @@ pub fn tourch_light_update(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
-    let mut mesh = Mesh::new(PrimitiveTopology::LineList);
+    let line_start = Vec3::new(0.0, 0.0, 0.0);
+    let line_end = Vec3::new(1.0, 0.0, 0.0);
+    let mut mesh = generate_line_mesh(line_start, line_end); 
     let indices: Vec<u32> = vec![0, 1];
     mesh.set_indices(Some(Indices::U32(indices)));
 
-    for (tourch_light, tourch_light_entity, player, tourch_transform) in
+    for (tourch_light, tourch_light_entity, player, mut tourch_transform) in
         tourch_light_query.iter_mut()
     {
         // let tourch_global_position = tourch_global_transform.translation();
@@ -253,15 +255,23 @@ pub fn tourch_light_update(
                 [closest_point.x, closest_point.y, 0.0],
             ];
             println!("tourch position: {:?}", tourch_position );
-            mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, tourch_position);
-            commands
-                .entity(tourch_light_entity)
-                .insert(MaterialMesh2dBundle {
-                    mesh: meshes.add(mesh.clone()).into(),
-                    material: materials
-                        .add(ColorMaterial::from(Color::rgba_linear(1.0, 1.0, 1.0, 0.5))),
-                    ..default()
-                });
+            // mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, tourch_position);
+            // let scale = 
+            // tourch_transform.translation = Transform::from_scale(scale);
+            let scale_x = (closest_point.x / tourch_global_position.x).abs();  
+            let scale_y = (closest_point.y / tourch_global_position.y).abs();
+            println!("Tourch scale x: {:?}", scale_x);
+            println!("Tourch scale y: {:?}", scale_y);
+            tourch_transform.scale = Vec3::new(scale_x, scale_y, 0.0);
+            println!("Tourch scale: {:?}", tourch_transform.scale);
+            // commands
+            //     .entity(tourch_light_entity)
+            //     .insert(MaterialMesh2dBundle {
+            //         mesh: meshes.add(mesh.clone()).into(),
+            //         material: materials
+            //             .add(ColorMaterial::from(Color::rgba_linear(1.0, 1.0, 1.0, 0.5))),
+            //         ..default()
+            //     });
         }
     }
 }
