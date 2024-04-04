@@ -1,0 +1,11 @@
+[workspace]
+
+members = [
+    "custom_mesh",
+    "fl_game",
+    "gravity_2d",
+    "land_noise_generation",
+    "rand_race",
+    "ray_casting",
+    "space_ship",
+]

@@ -27,7 +27,7 @@ pub struct TourchLight {
 #[derive(Component)]
 pub struct Wall {
     pub start: Vec3,
-    pub end: Vec3
+    pub end: Vec3,
 }
 
 #[derive(Component)]

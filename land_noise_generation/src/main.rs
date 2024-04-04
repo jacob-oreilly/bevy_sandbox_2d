@@ -52,15 +52,14 @@ fn setup(
             let color_value = column_major[current_index] as f32;
             // Circle
             commands.spawn(MaterialMesh2dBundle {
-                mesh: meshes.add(shape::Circle::new(2.0).into()).into(),
+                mesh: meshes.add(Circle::new(2.0)).into(),
                 material: materials.add(
                     Color::rgba_linear(
                         color_value * 255.0,
                         color_value * 255.0,
                         color_value * 255.0,
                         color_value + 1.0,
-                    )
-                    .into(),
+                    ),
                 ),
                 transform: Transform::from_xyz(x_coord, y_coord, 0.0),
                 ..default()

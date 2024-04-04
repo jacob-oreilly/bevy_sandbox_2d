@@ -36,7 +36,7 @@ fn spawn_player(
     commands.spawn(
         (
             MaterialMesh2dBundle {
-                mesh: bevy::sprite::Mesh2dHandle(meshes.add(shape::Box::new(10.0, 25.0, 0.0).into())),
+                mesh: bevy::sprite::Mesh2dHandle(meshes.add(Cuboid::new(10.0, 25.0, 0.0))),
                 material: materials.add(ColorMaterial::from(Color::ALICE_BLUE)),
                 transform: Transform::from_translation(Vec3::new(window.width() / 2.0, window.height() / 2.0, 0.0)),
                 ..default()
@@ -74,7 +74,7 @@ fn spawn_floor(
     commands.spawn(
         (
             MaterialMesh2dBundle {
-                mesh: bevy::sprite::Mesh2dHandle(meshes.add(shape::Box::new(400.0, 10.0, 0.0).into())),
+                mesh: bevy::sprite::Mesh2dHandle(meshes.add(Cuboid::new(400.0, 10.0, 0.0))),
                 material: materials.add(ColorMaterial::from(Color::ORANGE_RED)),
                 transform: Transform::from_translation(Vec3::new(window.width() / 2.0, (window.height() / 2.0) - 200.0, 0.0)),
                 ..default()

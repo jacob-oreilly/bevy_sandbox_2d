@@ -1,0 +1,7 @@
+{
+    "rust-analyzer.linkedProjects": [
+        "./ray_casting/Cargo.toml",
+        "./fl_game/Cargo.toml"
+    ],
+    "rust-analyzer.showUnlinkedFileNotification": false
+}

@@ -1,15 +1,7 @@
-use std::{
-    f32::{consts::{FRAC_PI_2, PI}, INFINITY},
-    vec,
-};
+use std::vec;
 
 use bevy::{
-    math::vec3,
-    prelude::*,
-    render::{mesh::Indices, render_resource::PrimitiveTopology},
-    sprite::MaterialMesh2dBundle,
-    transform,
-    window::PrimaryWindow,
+    math::vec3, prelude::*, render::{mesh::Indices, render_asset::RenderAssetUsages, render_resource::PrimitiveTopology}, sprite::MaterialMesh2dBundle, window::PrimaryWindow
 };
 
 use crate::components::{self, Tourch, TourchLight, Wall};
@@ -35,7 +27,7 @@ pub fn spawn_player(
     commands
         .spawn((
             MaterialMesh2dBundle {
-                mesh: meshes.add(shape::Circle::new(25.0).into()).into(),
+                mesh: meshes.add(Circle::new(25.0)).into(),
                 material: materials.add(ColorMaterial::from(Color::ALICE_BLUE)),
                 transform: Transform::from_xyz(window.width() / 2.0, window.height() / 2.0, 0.0),
                 ..default()
@@ -50,16 +42,16 @@ pub fn spawn_player(
             parent.spawn((
                 MaterialMesh2dBundle {
                     mesh: meshes
-                        .add(shape::Quad::new(Vec2::new(25.0, 10.0)).into())
+                        .add(Rectangle::new(25.0, 10.0))
                         .into(),
-                    material: materials.add(Color::RED.into()),
+                    material: materials.add(Color::RED),
                     transform: Transform::from_xyz(25.0, 0.0, 1.0),
                     ..default()
                 },
                 Tourch {},
             ));
-            let rez = 180 / 90;
-            for i in (0..1) {
+            // let rez = 180 / 90;
+            for _i in 0..1 {
                 let angle = 0.0;
                 parent.spawn((
                     MaterialMesh2dBundle {
@@ -82,22 +74,22 @@ pub fn spawn_player(
 }
 
 pub fn player_movement(
-    keys: Res<Input<KeyCode>>,
+    keys: Res<ButtonInput<KeyCode>>,
     mut player_query: Query<(&mut Transform, &mut Player), With<Player>>,
     time: Res<Time>,
 ) {
     if let Ok((mut transform, player)) = player_query.get_single_mut() {
         let mut direction = Vec3::new(0.0, 0.0, 0.0);
-        if keys.pressed(KeyCode::Left) || keys.pressed(KeyCode::A) {
+        if keys.pressed(KeyCode::ArrowLeft) || keys.pressed(KeyCode::KeyA) {
             direction += Vec3::new(-1.0, 0.0, 0.0);
         }
-        if keys.pressed(KeyCode::Right) || keys.pressed(KeyCode::D) {
+        if keys.pressed(KeyCode::ArrowRight) || keys.pressed(KeyCode::KeyD) {
             direction += Vec3::new(1.0, 0.0, 0.0);
         }
-        if keys.pressed(KeyCode::Up) || keys.pressed(KeyCode::W) {
+        if keys.pressed(KeyCode::ArrowUp) || keys.pressed(KeyCode::KeyW) {
             direction += Vec3::new(0.0, 1.0, 0.0);
         }
-        if keys.pressed(KeyCode::Down) || keys.pressed(KeyCode::S) {
+        if keys.pressed(KeyCode::ArrowDown) || keys.pressed(KeyCode::KeyS) {
             direction += Vec3::new(0.0, -1.0, 0.0);
         }
 
@@ -125,6 +117,10 @@ pub fn spawn_walls(
     let line_start = Vec3::new(0.0, 0.0, 0.0);
     let line_end = Vec3::new(0.0, line_length, 0.0);
     let wall_mesh = generate_line_mesh(line_start, line_end);
+    let wall_right_transform = Transform::from_xyz(window.width() - 1.0, 0.0, 0.0);
+    let wall_right_length = wall_right_transform.translation.length();
+    println!("Wall Right length: {:?}", wall_right_length);
+    let wall_right = Wall {start: line_start, end: line_end};
     commands.spawn((
         MaterialMesh2dBundle {
             mesh: meshes.add(wall_mesh.clone()).into(),
@@ -137,7 +133,6 @@ pub fn spawn_walls(
             end: line_end,
         },
     ));
-
     //right wall
     commands.spawn((
         MaterialMesh2dBundle {
@@ -146,10 +141,7 @@ pub fn spawn_walls(
             transform: Transform::from_xyz(window.width() - 1.0, 0.0, 0.0),
             ..default()
         },
-        Wall {
-            start: line_start,
-            end: line_end,
-        },
+        wall_right,
     ));
     
     //left wall
@@ -167,7 +159,7 @@ pub fn spawn_walls(
     ));
 
     let scale = (window.width() / line_length).abs();
-    println!("Scale: {:?}",scale);
+    // println!("Scale: {:?}",scale);
     //ceiling
     commands.spawn((
         MaterialMesh2dBundle {
@@ -198,21 +190,17 @@ pub fn spawn_walls(
 }
 
 pub fn tourch_light_update(
-    mut commands: Commands,
     mut tourch_light_query: Query<
         (&mut TourchLight, Entity, &Parent, &mut Transform),
-        With<TourchLight>,
-    >,
-    mut wall_query: Query<&mut Wall, Without<TourchLight>>,
+        With<TourchLight>>,
+    mut wall_query: Query<(&mut Wall, &Transform), Without<TourchLight>>,
     mut transform_query: Query<&Transform, Without<TourchLight>>,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
     let line_start = Vec3::new(0.0, 0.0, 0.0);
     let line_end = Vec3::new(1.0, 0.0, 0.0);
     let mut mesh = generate_line_mesh(line_start, line_end); 
     let indices: Vec<u32> = vec![0, 1];
-    mesh.set_indices(Some(Indices::U32(indices)));
+    mesh.insert_indices(Indices::U32(indices));
 
     for (tourch_light, tourch_light_entity, player, mut tourch_transform) in
         tourch_light_query.iter_mut()
@@ -221,17 +209,21 @@ pub fn tourch_light_update(
         let mut tourch_global_position = Vec3::ZERO;
         if let Ok(transform) = transform_query.get_mut(**player) {
             tourch_global_position = transform.translation;
-            println!("Inside Player: {:?}", transform.translation);
+            // println!("Inside Player: {:?}", transform.translation);
         }
 
         // println!("Tourch global: {:?}", tourch_global_position);
         let mut closest_point: Vec3 = Vec3::NAN;
         let mut smallest_dist = f32::INFINITY;
-        // println!("tourch_light_direct: {:?}",  tourch_light.ray_direction);
+        
         // println!("tourch_light_org: {:?}",  tourch_global_position);
-        for wall in wall_query.iter_mut() {
+        for (wall, transform) in wall_query.iter_mut() {
             let wall_vec1 = wall.start;
             let wall_vec2 = wall.end;
+            // println!("wall pt 1: {:?}",  transform.translation.x);
+            // println!("wall pt 2: {:?}",  wall_vec2);
+            // println!("tourch global position: {:?}", tourch_global_position);
+            // println!("tourch_light_direct: {:?}",  tourch_light.ray_direction);
             let intersect_point = calc_intersect(
                 wall_vec1,
                 wall_vec2,
@@ -240,30 +232,31 @@ pub fn tourch_light_update(
             );
             
             if intersect_point != None {
-                println!("Intersect Point: {:?}", intersect_point );
+                // println!("Intersect Point: {:?}", intersect_point );
                 let temp_cursor_vector = tourch_global_position;
                 let distance = temp_cursor_vector.distance(intersect_point.unwrap());
+                // println!("Distance: {:?}", distance);
                 if distance < smallest_dist {
                     smallest_dist = distance;
                     closest_point = intersect_point.unwrap();
                 }
             }
         }
+        // println!("closest point: {:?}", closest_point);
         if closest_point != Vec3::NAN {
             let tourch_position = vec![
                 [0.0, 0.0, 0.0],
                 [closest_point.x, closest_point.y, 0.0],
             ];
-            println!("tourch position: {:?}", tourch_position );
             // mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, tourch_position);
             // let scale = 
             // tourch_transform.translation = Transform::from_scale(scale);
-            let scale_x = (closest_point.x / tourch_global_position.x).abs();  
-            let scale_y = (closest_point.y / tourch_global_position.y).abs();
-            println!("Tourch scale x: {:?}", scale_x);
-            println!("Tourch scale y: {:?}", scale_y);
-            tourch_transform.scale = Vec3::new(scale_x, scale_y, 0.0);
-            println!("Tourch scale: {:?}", tourch_transform.scale);
+            let scale_x = (closest_point.x / tourch_global_position.x);  
+            let scale_y = (closest_point.y / tourch_global_position.y);
+            // println!("Tourch scale x: {:?}", scale_x);
+            // println!("Tourch scale y: {:?}", scale_y);
+            tourch_transform.scale = Vec3::new(scale_x, scale_y, 0.0).normalize();
+            // println!("Tourch scale: {:?}", tourch_transform.scale);
             // commands
             //     .entity(tourch_light_entity)
             //     .insert(MaterialMesh2dBundle {
@@ -312,30 +305,30 @@ pub fn calc_intersect(
 }
 
 pub fn generate_line_mesh(line_start: Vec3, line_end: Vec3) -> Mesh {
-    let mut mesh = Mesh::new(PrimitiveTopology::LineList);
+    let mut mesh = Mesh::new(PrimitiveTopology::LineList, RenderAssetUsages::default());
     let line_vector = vec![line_start, line_end];
     mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, line_vector);
     let indices: Vec<u32> = vec![0, 1];
-    mesh.set_indices(Some(Indices::U32(indices)));
+    mesh.insert_indices(Indices::U32(indices));
     mesh
 }
 
 pub fn update_tourch_light_direction(
-    keys: Res<Input<KeyCode>>,
+    keys: Res<ButtonInput<KeyCode>>,
     mut tourch_light_query: Query<(&mut Transform, &mut TourchLight), With<TourchLight>>,
 ) {
     for (mut transform, mut tourch_light) in tourch_light_query.iter_mut() {
         let mut direction = Vec2::new(0.0, 0.0);
-        if keys.pressed(KeyCode::Left) || keys.pressed(KeyCode::A) {
+        if keys.pressed(KeyCode::ArrowUp) || keys.pressed(KeyCode::KeyA) {
             direction += Vec2::new(-1.0, 0.0);
         }
-        if keys.pressed(KeyCode::Right) || keys.pressed(KeyCode::D) {
+        if keys.pressed(KeyCode::ArrowRight) || keys.pressed(KeyCode::KeyD) {
             direction += Vec2::new(1.0, 0.0);
         }
-        if keys.pressed(KeyCode::Up) || keys.pressed(KeyCode::W) {
+        if keys.pressed(KeyCode::ArrowUp) || keys.pressed(KeyCode::KeyW) {
             direction += Vec2::new(0.0, 1.0);
         }
-        if keys.pressed(KeyCode::Down) || keys.pressed(KeyCode::S) {
+        if keys.pressed(KeyCode::ArrowDown) || keys.pressed(KeyCode::KeyS) {
             direction += Vec2::new(0.0, -1.0);
         }
 

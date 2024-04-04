@@ -2,7 +2,7 @@ use std::vec;
 
 use bevy::{
     prelude::*,
-    render::{mesh::Indices, render_resource::PrimitiveTopology},
+    render::{mesh::Indices, render_asset::RenderAssetUsages, render_resource::PrimitiveTopology},
     sprite::MaterialMesh2dBundle,
     window::PrimaryWindow,
 };
@@ -57,10 +57,10 @@ pub fn draw_walls(
     walls.push(normal_wall_3);
 
     for wall in walls {
-        let mut mesh = Mesh::new(PrimitiveTopology::LineList);
+        let mut mesh = Mesh::new(PrimitiveTopology::LineList, RenderAssetUsages::default());
         mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, wall.clone());
         let indices: Vec<u32> = vec![0, 1];
-        mesh.set_indices(Some(Indices::U32(indices)));
+        mesh.insert_indices(Indices::U32(indices));
 
         commands.spawn((
             MaterialMesh2dBundle {
@@ -82,11 +82,11 @@ pub fn draw_rays(
     mut materials: ResMut<Assets<ColorMaterial>>,
     number_of_rays: ResMut<NumberOfRays>,
 ) {
-    let mut mesh = Mesh::new(PrimitiveTopology::LineList);
+    let mut mesh = Mesh::new(PrimitiveTopology::LineList, RenderAssetUsages::default());
     let ray_start = vec![[0.0, 0.0, 0.0], [0.0, 0.0, 0.0]];
     mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, ray_start);
     let indices: Vec<u32> = vec![0, 1];
-    mesh.set_indices(Some(Indices::U32(indices)));
+    mesh.insert_indices(Indices::U32(indices));
 
     let ray_increment = 360 / number_of_rays.num;
     println!("Ray_increment: {:?}", ray_increment);
@@ -120,9 +120,9 @@ pub fn ray_intersect_update(
     mut materials: ResMut<Assets<ColorMaterial>>,
     my_cursor: ResMut<Mouse>,
 ) {
-    let mut mesh = Mesh::new(PrimitiveTopology::LineList);
+    let mut mesh = Mesh::new(PrimitiveTopology::LineList, RenderAssetUsages::default());
     let indices: Vec<u32> = vec![0, 1];
-    mesh.set_indices(Some(Indices::U32(indices)));
+    mesh.insert_indices(Indices::U32(indices));
 
     for (ray, ray_entity) in ray_query.iter_mut() {
         let ray_direction = ray.ray_direction;
